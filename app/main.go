@@ -29,5 +29,12 @@ func main() {
 	defer func(conn net.Conn) {
 		_ = conn.Close()
 	}(conn)
-	_, _ = conn.Write([]byte("+PONG\r\n"))
+	buf := make([]byte, 1024)
+	for {
+		_, err := conn.Read(buf)
+		if err != nil {
+			return
+		}
+		_, _ = conn.Write([]byte("+PONG\r\n"))
+	}
 }
