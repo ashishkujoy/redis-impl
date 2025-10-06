@@ -2,6 +2,7 @@ package serializer
 
 import (
 	"errors"
+	"fmt"
 	"net"
 )
 
@@ -24,6 +25,8 @@ func ParseCommand(c net.Conn) (*Command, error) {
 		return nil, err
 	}
 	commandName := string(commandBuf[:4])
+	fmt.Printf("No. of bytes read: %d\nCommand Name: %s\n", read, commandName)
+
 	return &Command{
 		Name: commandName,
 		Args: commandBuf[5:read],
