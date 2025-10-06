@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 	"os"
+
+	"github.com/codecrafters-io/redis-starter-go/app/serializer"
 )
 
 // Ensures gofmt doesn't remove the "net" and "os" imports in stage 1 (feel free to remove this!)
@@ -33,13 +35,23 @@ func main() {
 				_ = conn.Close()
 			}(conn)
 
-			buf := make([]byte, 1024)
 			for {
-				_, err := conn.Read(buf)
+				command, err := serializer.ParseCommand(c)
 				if err != nil {
 					return
 				}
-				_, _ = conn.Write([]byte("+PONG\r\n"))
+				if command.Name == "ping" {
+					_, _ = conn.Write([]byte("+PONG\r\n"))
+					continue
+				}
+				bulkString, err := serializer.EncodeBulkString(command.Args[0])
+				if err != nil {
+					return
+				}
+				_, err = conn.Write(bulkString)
+				if err != nil {
+					return
+				}
 			}
 		}(conn)
 	}

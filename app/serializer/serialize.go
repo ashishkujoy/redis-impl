@@ -1,0 +1,22 @@
+package serializer
+
+import (
+	"strconv"
+)
+
+func EncodeBulkString(message string) ([]byte, error) {
+	return EncodeBytesAsBulkString([]byte(message))
+}
+
+func EncodeBytesAsBulkString(message []byte) ([]byte, error) {
+	length := len(message)
+	lenStr := strconv.Itoa(length)
+	encoded := make([]byte, 0, 1+len(lenStr)+2+len(message)+2)
+	encoded = append(encoded, '$')
+	encoded = append(encoded, lenStr...)
+	encoded = append(encoded, '\r', '\n')
+	encoded = append(encoded, message...)
+	encoded = append(encoded, '\r', '\n')
+
+	return encoded, nil
+}
