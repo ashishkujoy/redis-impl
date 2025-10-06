@@ -40,11 +40,11 @@ func main() {
 				if err != nil {
 					return
 				}
-				if command.Name == "ping" {
+				if command.Name == serializer.PING {
 					_, _ = conn.Write([]byte("+PONG\r\n"))
 					continue
 				}
-				bulkString, err := serializer.EncodeBulkString(command.Args[0])
+				bulkString, err := serializer.EncodeBytesAsBulkString(command.Args)
 				if err != nil {
 					return
 				}
