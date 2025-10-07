@@ -2,6 +2,7 @@ package serializer
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"strconv"
@@ -82,6 +83,9 @@ func ParseArray(c io.Reader) ([]string, error) {
 
 func ParseCommand(c net.Conn) (*Command, error) {
 	elements, err := ParseArray(c)
+	for _, element := range elements {
+		fmt.Println(element)
+	}
 	if err != nil {
 		return nil, err
 	}
