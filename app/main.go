@@ -44,7 +44,7 @@ func main() {
 					_, _ = conn.Write([]byte("+PONG\r\n"))
 					continue
 				}
-				bulkString, err := serializer.EncodeBytesAsBulkString(command.Args)
+				bulkString, err := serializer.EncodeBulkString(command.Args[0])
 				if err != nil {
 					return
 				}

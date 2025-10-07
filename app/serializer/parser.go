@@ -2,7 +2,6 @@ package serializer
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"strconv"
@@ -17,7 +16,7 @@ const (
 
 type Command struct {
 	Name CommandName
-	Args []byte
+	Args []string
 }
 
 var EofError = errors.New("EOF")
@@ -82,16 +81,13 @@ func ParseArray(c io.Reader) ([]string, error) {
 }
 
 func ParseCommand(c net.Conn) (*Command, error) {
-	commandBuf := make([]byte, 1024)
-	read, err := c.Read(commandBuf)
+	elements, err := ParseArray(c)
 	if err != nil {
 		return nil, err
 	}
-	commandName := string(commandBuf[:4])
-	fmt.Printf("No. of bytes read: %d\nCommand Name: %s\n", read, commandName)
 
 	return &Command{
-		Name: commandName,
-		Args: commandBuf[5:read],
+		Name: elements[0],
+		Args: elements[1:],
 	}, errors.New("invalid command")
 }
