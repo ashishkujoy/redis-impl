@@ -2,7 +2,6 @@ package serializer
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"strconv"
@@ -83,15 +82,16 @@ func ParseArray(c io.Reader) ([]string, error) {
 
 func ParseCommand(c net.Conn) (*Command, error) {
 	elements, err := ParseArray(c)
-	for _, element := range elements {
-		fmt.Println(element)
-	}
 	if err != nil {
 		return nil, err
+	}
+	var args []string
+	if len(elements) > 1 {
+		args = elements[1:]
 	}
 
 	return &Command{
 		Name: elements[0],
-		Args: elements[1:],
-	}, errors.New("invalid command")
+		Args: args,
+	}, nil
 }

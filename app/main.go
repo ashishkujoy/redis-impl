@@ -18,13 +18,14 @@ func main() {
 
 	// Uncomment this block to pass the first stage
 	//
-	l, err := net.Listen("tcp", "0.0.0.0:6379")
+	l, err := net.Listen("tcp", "0.0.0.0:6380")
 	if err != nil {
 		fmt.Println("Failed to bind to port 6379")
 		os.Exit(1)
 	}
 	for {
 		conn, err := l.Accept()
+		fmt.Println("Accepting connection")
 		if err != nil {
 			fmt.Println("Error accepting connection: ", err.Error())
 			os.Exit(1)
@@ -34,16 +35,19 @@ func main() {
 			defer func(conn net.Conn) {
 				_ = conn.Close()
 			}(conn)
-
+			fmt.Println("Connection accepted")
 			for {
 				command, err := serializer.ParseCommand(c)
 				if err != nil {
+					fmt.Println("Error parsing command: ", err.Error())
 					return
 				}
 				if command.Name == serializer.PING {
+					fmt.Println("Received PING command")
 					_, _ = conn.Write([]byte("+PONG\r\n"))
 					continue
 				}
+				fmt.Println("Received command: ", command.Name)
 				bulkString, err := serializer.EncodeBulkString(command.Args[0])
 				if err != nil {
 					return
