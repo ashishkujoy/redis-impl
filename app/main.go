@@ -67,6 +67,7 @@ func main() {
 					kvStore.Set(command.Args[0], command.Args[1])
 					_, _ = conn.Write([]byte("+OK\r\n"))
 					fmt.Println("Replied for SET command")
+					continue
 				}
 				if command.Name == serializer.GET {
 					fmt.Println("Received GET command")
@@ -81,6 +82,7 @@ func main() {
 					}
 					_, _ = conn.Write(res)
 					fmt.Println("Replied for GET command")
+					continue
 				}
 				fmt.Println("Received command: ", command.Name)
 				fmt.Println(len(command.Args))
