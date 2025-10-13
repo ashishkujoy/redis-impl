@@ -49,8 +49,9 @@ func main() {
 					fmt.Println("Error parsing command: ", err.Error())
 					return
 				}
+				fmt.Printf("Command: %s\n", command)
 				if command.Name == serializer.PING {
-					fmt.Println("Received PING command")
+					fmt.Println("Received command")
 					_, _ = conn.Write([]byte("+PONG\r\n"))
 					fmt.Println("Replied for ping command")
 					return
