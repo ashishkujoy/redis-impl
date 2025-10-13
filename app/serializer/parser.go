@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"strconv"
+	"strings"
 )
 
 type CommandName = string
@@ -91,7 +92,7 @@ func ParseCommand(c net.Conn) (*Command, error) {
 	}
 
 	return &Command{
-		Name: elements[0],
+		Name: strings.ToLower(elements[0]),
 		Args: args,
 	}, nil
 }
