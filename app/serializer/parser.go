@@ -13,6 +13,8 @@ type CommandName = string
 const (
 	PING CommandName = "ping"
 	ECHO CommandName = "echo"
+	GET  CommandName = "get"
+	SET  CommandName = "set"
 )
 
 type Command struct {
