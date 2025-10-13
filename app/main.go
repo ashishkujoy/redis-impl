@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 
 	"github.com/codecrafters-io/redis-starter-go/app/serializer"
 )
@@ -15,10 +16,16 @@ var _ = os.Exit
 func main() {
 	// You can use print statements as follows for debugging, they'll be visible when running tests.
 	fmt.Println("Logs from your program will appear here!")
+	args := os.Args[1:]
+	port := 6379
+	if len(args) > 1 {
+		port, _ = strconv.Atoi(args[1])
+	}
 
 	// Uncomment this block to pass the first stage
 	//
-	l, err := net.Listen("tcp", "0.0.0.0:6380")
+	add := fmt.Sprintf("0.0.0.0:%d", port)
+	l, err := net.Listen("tcp", add)
 	if err != nil {
 		fmt.Println("Failed to bind to port 6379")
 		os.Exit(1)
