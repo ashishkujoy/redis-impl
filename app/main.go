@@ -54,7 +54,7 @@ func main() {
 					fmt.Println("Received command")
 					_, _ = conn.Write([]byte("+PONG\r\n"))
 					fmt.Println("Replied for ping command")
-					return
+					continue
 				}
 				fmt.Println("Received command: ", command.Name)
 				fmt.Println(len(command.Args))
