@@ -55,45 +55,42 @@ func main() {
 					fmt.Println("Error parsing command: ", err.Error())
 					return
 				}
-				fmt.Printf("Command: %s, args count%d\n", command.Name, len(command.Args))
-				if command.Name == serializer.PING {
-					fmt.Println("Received PING command")
-					_, _ = conn.Write([]byte("+PONG\r\n"))
-					fmt.Println("Replied for ping command")
-					continue
-				}
-				if command.Name == serializer.SET {
-					fmt.Println("Received SET command")
-					kvStore.Set(command.Args[0], command.Args[1])
-					_, _ = conn.Write([]byte("+OK\r\n"))
-					fmt.Println("Replied for SET command")
-					continue
-				}
-				if command.Name == serializer.GET {
-					fmt.Println("Received GET command")
-					value, found := kvStore.Get(command.Args[0])
-					res := []byte("$-1\r\n")
-					if found {
-						res, err = serializer.EncodeBulkString(value)
-						if err != nil {
-							fmt.Println("Error encoding value: ", err.Error())
-							return
-						}
+				switch c := command.(type) {
+				case *serializer.PingCommand:
+					{
+						fmt.Println("Received PING command")
+						_, _ = conn.Write([]byte("+PONG\r\n"))
+						fmt.Println("Replied for ping command")
 					}
-					_, _ = conn.Write(res)
-					fmt.Println("Replied for GET command")
-					continue
-				}
-				fmt.Println("Received command: ", command.Name)
-				fmt.Println(len(command.Args))
-				bulkString, err := serializer.EncodeBulkString(command.Args[0])
-				fmt.Println("Encoded BulkString: ", bulkString)
-				if err != nil {
-					return
-				}
-				_, err = conn.Write(bulkString)
-				if err != nil {
-					return
+				case *serializer.EchoCommand:
+					{
+						fmt.Println("Received Echo command")
+						bytes, err := serializer.EncodeBulkString(c.Message)
+						if err != nil {
+							fmt.Println("Error encoding command: ", err.Error())
+						}
+						_, err = conn.Write(bytes)
+					}
+				case *serializer.SetCommand:
+					{
+						fmt.Println("Received Set command")
+						kvStore.Set(c.Key, c.Value)
+						_, _ = conn.Write([]byte("+OK\r\n"))
+					}
+				case *serializer.GetCommand:
+					{
+						fmt.Println("Received Get command")
+						value, found := kvStore.Get(c.Key)
+						res := []byte("$-1\r\n")
+						if found {
+							res, err = serializer.EncodeBulkString(value)
+							if err != nil {
+								fmt.Println("Error encoding value: ", err.Error())
+								return
+							}
+						}
+						_, _ = conn.Write(res)
+					}
 				}
 			}
 		}(conn)
