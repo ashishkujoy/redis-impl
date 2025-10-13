@@ -52,10 +52,13 @@ func main() {
 				if command.Name == serializer.PING {
 					fmt.Println("Received PING command")
 					_, _ = conn.Write([]byte("+PONG\r\n"))
+					fmt.Println("Replied for ping command")
 					continue
 				}
 				fmt.Println("Received command: ", command.Name)
+				fmt.Println(len(command.Args))
 				bulkString, err := serializer.EncodeBulkString(command.Args[0])
+				fmt.Println("Encoded BulkString: ", bulkString)
 				if err != nil {
 					return
 				}
