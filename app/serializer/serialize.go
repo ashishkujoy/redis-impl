@@ -20,3 +20,13 @@ func EncodeBytesAsBulkString(message []byte) ([]byte, error) {
 
 	return encoded, nil
 }
+
+func EncodeNumber(number int) ([]byte, error) {
+	str := strconv.Itoa(number)
+	encoded := make([]byte, 0, len(str)+3)
+	encoded = append(encoded, ':')
+	encoded = append(encoded, str...)
+	encoded = append(encoded, '\r', '\n')
+
+	return encoded, nil
+}

@@ -8,6 +8,7 @@ import (
 
 	"github.com/codecrafters-io/redis-starter-go/app/serializer"
 	"github.com/codecrafters-io/redis-starter-go/app/store"
+	"github.com/codecrafters-io/redis-starter-go/app/store/ds"
 )
 
 // Ensures gofmt doesn't remove the "net" and "os" imports in stage 1 (feel free to remove this!)
@@ -26,9 +27,8 @@ func main() {
 		port, _ = strconv.Atoi(args[0])
 	}
 	kvStore := store.NewKVStore()
+	lists := ds.NewLists()
 
-	// Uncomment this block to pass the first stage
-	//
 	add := fmt.Sprintf("0.0.0.0:%d", port)
 	fmt.Println(add)
 	l, err := net.Listen("tcp", add)
@@ -88,6 +88,17 @@ func main() {
 								fmt.Println("Error encoding value: ", err.Error())
 								return
 							}
+						}
+						_, _ = conn.Write(res)
+					}
+				case *serializer.RPushCommand:
+					{
+						fmt.Println("Received RPush command")
+						length := lists.RPush(c.Key, c.Value)
+						res, err := serializer.EncodeNumber(length)
+						if err != nil {
+							fmt.Println("Error encoding value: ", err.Error())
+							return
 						}
 						_, _ = conn.Write(res)
 					}

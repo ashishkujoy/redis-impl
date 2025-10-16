@@ -67,6 +67,18 @@ func NewSetCommand(elements [][]byte) (*SetCommand, error) {
 	return command, nil
 }
 
+type RPushCommand struct {
+	Key   string
+	Value string
+}
+
+func NewRPushCommand(elements [][]byte) (*RPushCommand, error) {
+	command := &RPushCommand{}
+	command.Key = string(elements[1])
+	command.Value = string(elements[2])
+	return command, nil
+}
+
 var EofError = errors.New("EOF")
 
 func readToken(buf []byte, cursor int) ([]byte, int, error) {
@@ -143,6 +155,8 @@ func ParseCommand(c net.Conn) (Command, error) {
 		return NewGetCommand(elements)
 	case "set":
 		return NewSetCommand(elements)
+	case "rpush":
+		return NewRPushCommand(elements)
 	}
 	return nil, fmt.Errorf("unknown command: %s", string(elements[0]))
 }
