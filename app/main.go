@@ -74,7 +74,7 @@ func main() {
 				case *serializer.SetCommand:
 					{
 						fmt.Println("Received Set command")
-						kvStore.Set(c.Key, c.Value)
+						kvStore.Set(c.Key, c.Value, c.PX)
 						_, _ = conn.Write([]byte("+OK\r\n"))
 					}
 				case *serializer.GetCommand:
