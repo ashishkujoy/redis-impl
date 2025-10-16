@@ -49,3 +49,11 @@ func (l *Lists) LRange(key string, start int, end int) []string {
 	}
 	return list.LRange(start, end)
 }
+
+func (l *Lists) LLen(key string) int {
+	list, ok := l.lists[key]
+	if !ok {
+		return 0
+	}
+	return list.length
+}

@@ -116,7 +116,15 @@ func main() {
 						res, _ := serializer.EncodeNumber(length)
 						_, _ = conn.Write(res)
 					}
+				case *serializer.LLENCommand:
+					{
+						fmt.Println("Received LLen command")
+						length := lists.LLen(c.Key)
+						res, _ := serializer.EncodeNumber(length)
+						_, _ = conn.Write(res)
+					}
 				}
+
 			}
 		}(conn)
 	}

@@ -121,6 +121,16 @@ func NewLRangeCommand(elements [][]byte) (*LRangeCommand, error) {
 	return command, nil
 }
 
+type LLENCommand struct {
+	Key string
+}
+
+func NewLLENCommand(elements [][]byte) (*LLENCommand, error) {
+	command := &LLENCommand{}
+	command.Key = string(elements[1])
+	return command, nil
+}
+
 var EofError = errors.New("EOF")
 
 func readToken(buf []byte, cursor int) ([]byte, int, error) {
@@ -203,6 +213,8 @@ func ParseCommand(c net.Conn) (Command, error) {
 		return NewLRangeCommand(elements)
 	case "lpush":
 		return NewLPushCommand(elements)
+	case "llen":
+		return NewLLENCommand(elements)
 	}
 	return nil, fmt.Errorf("unknown command: %s", string(elements[0]))
 }
