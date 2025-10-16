@@ -102,6 +102,13 @@ func main() {
 						}
 						_, _ = conn.Write(res)
 					}
+				case *serializer.LRangeCommand:
+					{
+						fmt.Println("Received LRange command")
+						elements := lists.LRange(c.Key, c.Start, c.End)
+						res, _ := serializer.EncodeAsBulkArray(elements)
+						_, _ = conn.Write(res)
+					}
 				}
 			}
 		}(conn)

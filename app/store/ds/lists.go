@@ -25,3 +25,11 @@ func (l *Lists) RPush(name string, values []string) int {
 	}
 	return list.length
 }
+
+func (l *Lists) LRange(key string, start int, end int) []string {
+	list, ok := l.lists[key]
+	if !ok {
+		return make([]string, 0)
+	}
+	return list.LRange(start, end)
+}

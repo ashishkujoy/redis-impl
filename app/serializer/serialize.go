@@ -30,3 +30,22 @@ func EncodeNumber(number int) ([]byte, error) {
 
 	return encoded, nil
 }
+
+func EncodeAsBulkArray(message []string) ([]byte, error) {
+	str := strconv.Itoa(len(message))
+	encoded := make([]byte, 0, len(message)+len(str))
+	encoded = append(encoded, '*')
+	encoded = append(encoded, str...)
+	encoded = append(encoded, '\r', '\n')
+
+	for _, element := range message {
+		length := strconv.Itoa(len(element))
+		encoded = append(encoded, '$')
+		encoded = append(encoded, length...)
+		encoded = append(encoded, '\r', '\n')
+		encoded = append(encoded, element...)
+		encoded = append(encoded, '\r', '\n')
+	}
+
+	return encoded, nil
+}

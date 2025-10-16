@@ -87,6 +87,28 @@ func NewRPushCommand(elements [][]byte) (*RPushCommand, error) {
 	return command, nil
 }
 
+type LRangeCommand struct {
+	Key   string
+	Start int
+	End   int
+}
+
+func NewLRangeCommand(elements [][]byte) (*LRangeCommand, error) {
+	command := &LRangeCommand{}
+	command.Key = string(elements[1])
+	start, err := strconv.Atoi(string(elements[2]))
+	if err != nil {
+		return nil, err
+	}
+	command.Start = start
+	end, err := strconv.Atoi(string(elements[3]))
+	if err != nil {
+		return nil, err
+	}
+	command.End = end
+	return command, nil
+}
+
 var EofError = errors.New("EOF")
 
 func readToken(buf []byte, cursor int) ([]byte, int, error) {
@@ -165,6 +187,8 @@ func ParseCommand(c net.Conn) (Command, error) {
 		return NewSetCommand(elements)
 	case "rpush":
 		return NewRPushCommand(elements)
+	case "lrange":
+		return NewLRangeCommand(elements)
 	}
 	return nil, fmt.Errorf("unknown command: %s", string(elements[0]))
 }
