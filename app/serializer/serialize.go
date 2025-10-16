@@ -33,7 +33,7 @@ func EncodeNumber(number int) ([]byte, error) {
 
 func EncodeAsBulkArray(message []string) ([]byte, error) {
 	str := strconv.Itoa(len(message))
-	encoded := make([]byte, len(message)+len(str))
+	encoded := make([]byte, 0, len(message)+len(str))
 	encoded = append(encoded, '*')
 	encoded = append(encoded, str...)
 	encoded = append(encoded, '\r', '\n')
