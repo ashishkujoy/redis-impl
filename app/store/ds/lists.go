@@ -10,14 +10,18 @@ func NewLists() *Lists {
 	return &Lists{lists: make(map[string]*List)}
 }
 
-func (l *Lists) RPush(name string, value string) int {
+func (l *Lists) RPush(name string, values []string) int {
 	list, ok := l.lists[name]
 	if !ok {
 		fmt.Printf("List %s is nil\n", name)
-		list = NewList(value)
+		list = NewList(values[0])
+
 		l.lists[name] = list
-		return 1
+		values = values[1:]
 	}
 	fmt.Printf("List %s is exist\n", name)
-	return list.RPush(value)
+	for _, value := range values {
+		list.RPush(value)
+	}
+	return list.length
 }

@@ -69,13 +69,21 @@ func NewSetCommand(elements [][]byte) (*SetCommand, error) {
 
 type RPushCommand struct {
 	Key   string
-	Value string
+	Value []string
+}
+
+func toStrings(elements [][]byte) []string {
+	strs := make([]string, len(elements))
+	for i, e := range elements {
+		strs[i] = string(e)
+	}
+	return strs
 }
 
 func NewRPushCommand(elements [][]byte) (*RPushCommand, error) {
 	command := &RPushCommand{}
 	command.Key = string(elements[1])
-	command.Value = string(elements[2])
+	command.Value = toStrings(elements[2:])
 	return command, nil
 }
 
