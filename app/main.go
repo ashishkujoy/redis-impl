@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/codecrafters-io/redis-starter-go/app/commands"
 	"github.com/codecrafters-io/redis-starter-go/app/serializer"
 	"github.com/codecrafters-io/redis-starter-go/app/store"
 	"github.com/codecrafters-io/redis-starter-go/app/store/ds"
@@ -56,13 +57,13 @@ func main() {
 					return
 				}
 				switch c := command.(type) {
-				case *serializer.PingCommand:
+				case *commands.PingCommand:
 					{
 						fmt.Println("Received PING command")
 						_, _ = conn.Write([]byte("+PONG\r\n"))
 						fmt.Println("Replied for ping command")
 					}
-				case *serializer.EchoCommand:
+				case *commands.EchoCommand:
 					{
 						fmt.Println("Received Echo command")
 						bytes, err := serializer.EncodeBulkString(c.Message)
@@ -71,13 +72,13 @@ func main() {
 						}
 						_, err = conn.Write(bytes)
 					}
-				case *serializer.SetCommand:
+				case *commands.SetCommand:
 					{
 						fmt.Println("Received Set command")
 						kvStore.Set(c.Key, c.Value, c.PX)
 						_, _ = conn.Write([]byte("+OK\r\n"))
 					}
-				case *serializer.GetCommand:
+				case *commands.GetCommand:
 					{
 						fmt.Println("Received Get command")
 						value, found := kvStore.Get(c.Key)
@@ -91,7 +92,7 @@ func main() {
 						}
 						_, _ = conn.Write(res)
 					}
-				case *serializer.RPushCommand:
+				case *commands.RPushCommand:
 					{
 						fmt.Println("Received RPush command")
 						length := lists.RPush(c.Key, c.Value)
@@ -102,21 +103,21 @@ func main() {
 						}
 						_, _ = conn.Write(res)
 					}
-				case *serializer.LRangeCommand:
+				case *commands.LRangeCommand:
 					{
 						fmt.Println("Received LRange command")
 						elements := lists.LRange(c.Key, c.Start, c.End)
 						res, _ := serializer.EncodeAsBulkArray(elements)
 						_, _ = conn.Write(res)
 					}
-				case *serializer.LPushCommand:
+				case *commands.LPushCommand:
 					{
 						fmt.Println("Received LPush command")
 						length := lists.LPush(c.Key, c.Value)
 						res, _ := serializer.EncodeNumber(length)
 						_, _ = conn.Write(res)
 					}
-				case *serializer.LLENCommand:
+				case *commands.LLENCommand:
 					{
 						fmt.Println("Received LLen command")
 						length := lists.LLen(c.Key)

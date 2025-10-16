@@ -7,129 +7,13 @@ import (
 	"net"
 	"strconv"
 	"strings"
+
+	"github.com/codecrafters-io/redis-starter-go/app/commands"
 )
 
 type CommandName = string
 
-const (
-	PING CommandName = "ping"
-	ECHO CommandName = "echo"
-	GET  CommandName = "get"
-	SET  CommandName = "set"
-)
-
 type Command interface{}
-
-type PingCommand struct{}
-
-type EchoCommand struct {
-	Message string
-}
-
-func NewEchoCommand(elements [][]byte) (*EchoCommand, error) {
-	return &EchoCommand{
-		Message: string(elements[1]),
-	}, nil
-}
-
-type GetCommand struct {
-	Key string
-}
-
-func NewGetCommand(elements [][]byte) (*GetCommand, error) {
-	return &GetCommand{
-		Key: string(elements[1]),
-	}, nil
-}
-
-type SetCommand struct {
-	Key   string
-	Value string
-	PX    int
-}
-
-func NewSetCommand(elements [][]byte) (*SetCommand, error) {
-	command := &SetCommand{}
-	command.Key = string(elements[1])
-	command.Value = string(elements[2])
-	command.PX = -1
-	if len(elements) == 5 {
-		timeOptionName := string(elements[3])
-		PX, err := strconv.Atoi(string(elements[4]))
-		if err != nil {
-			return nil, err
-		}
-		if strings.ToLower(timeOptionName) == "ex" {
-			PX = 1000 * PX
-		}
-		command.PX = PX
-	}
-	return command, nil
-}
-
-type RPushCommand struct {
-	Key   string
-	Value []string
-}
-
-type LPushCommand struct {
-	Key   string
-	Value []string
-}
-
-func toStrings(elements [][]byte) []string {
-	strs := make([]string, len(elements))
-	for i, e := range elements {
-		strs[i] = string(e)
-	}
-	return strs
-}
-
-func NewRPushCommand(elements [][]byte) (*RPushCommand, error) {
-	command := &RPushCommand{}
-	command.Key = string(elements[1])
-	command.Value = toStrings(elements[2:])
-	return command, nil
-}
-
-func NewLPushCommand(elements [][]byte) (*LPushCommand, error) {
-	command := &LPushCommand{}
-	command.Key = string(elements[1])
-	command.Value = toStrings(elements[2:])
-	return command, nil
-}
-
-type LRangeCommand struct {
-	Key   string
-	Start int
-	End   int
-}
-
-func NewLRangeCommand(elements [][]byte) (*LRangeCommand, error) {
-	command := &LRangeCommand{}
-	command.Key = string(elements[1])
-	start, err := strconv.Atoi(string(elements[2]))
-	if err != nil {
-		return nil, err
-	}
-	command.Start = start
-	end, err := strconv.Atoi(string(elements[3]))
-	if err != nil {
-		return nil, err
-	}
-	command.End = end
-	return command, nil
-}
-
-type LLENCommand struct {
-	Key string
-}
-
-func NewLLENCommand(elements [][]byte) (*LLENCommand, error) {
-	command := &LLENCommand{}
-	command.Key = string(elements[1])
-	return command, nil
-}
 
 var EofError = errors.New("EOF")
 
@@ -200,21 +84,21 @@ func ParseCommand(c net.Conn) (Command, error) {
 
 	switch strings.ToLower(string(elements[0])) {
 	case "ping":
-		return &PingCommand{}, nil
+		return &commands.PingCommand{}, nil
 	case "echo":
-		return NewEchoCommand(elements)
+		return commands.NewEchoCommand(elements)
 	case "get":
-		return NewGetCommand(elements)
+		return commands.NewGetCommand(elements)
 	case "set":
-		return NewSetCommand(elements)
+		return commands.NewSetCommand(elements)
 	case "rpush":
-		return NewRPushCommand(elements)
+		return commands.NewRPushCommand(elements)
 	case "lrange":
-		return NewLRangeCommand(elements)
+		return commands.NewLRangeCommand(elements)
 	case "lpush":
-		return NewLPushCommand(elements)
+		return commands.NewLPushCommand(elements)
 	case "llen":
-		return NewLLENCommand(elements)
+		return commands.NewLLENCommand(elements)
 	}
 	return nil, fmt.Errorf("unknown command: %s", string(elements[0]))
 }
