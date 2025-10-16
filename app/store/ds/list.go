@@ -52,7 +52,7 @@ func (l *List) LRange(start int, end int) []string {
 	if startingNode == nil {
 		return make([]string, 0)
 	}
-	elements := make([]string, 0, end-start)
+	var elements []string
 	for i := start; i <= end; i++ {
 		elements = append(elements, startingNode.value)
 		startingNode = startingNode.child
