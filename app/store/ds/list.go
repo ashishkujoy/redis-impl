@@ -45,9 +45,18 @@ func (l *List) getNodeByIndex(index int) *listNode {
 	return head
 }
 
+func makeStartAndEnd(length int, start int, end int) (int, int) {
+	if start < 0 {
+		start = length + start
+	}
+	if end < 0 {
+		end = length + end
+	}
+	return max(0, start), min(end, length-1)
+}
+
 func (l *List) LRange(start int, end int) []string {
-	start = max(start, 0)
-	end = min(end, l.Len()-1)
+	start, end = makeStartAndEnd(l.length, start, end)
 	startingNode := l.getNodeByIndex(start)
 	if startingNode == nil {
 		return make([]string, 0)
