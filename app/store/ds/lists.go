@@ -26,6 +26,22 @@ func (l *Lists) RPush(name string, values []string) int {
 	return list.length
 }
 
+func (l *Lists) LPush(name string, values []string) int {
+	list, ok := l.lists[name]
+	if !ok {
+		fmt.Printf("List %s is nil\n", name)
+		list = NewList(values[0])
+
+		l.lists[name] = list
+		values = values[1:]
+	}
+	fmt.Printf("List %s is exist\n", name)
+	for _, value := range values {
+		list.LPush(value)
+	}
+	return list.length
+}
+
 func (l *Lists) LRange(key string, start int, end int) []string {
 	list, ok := l.lists[key]
 	if !ok {

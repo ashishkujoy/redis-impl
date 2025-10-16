@@ -109,6 +109,13 @@ func main() {
 						res, _ := serializer.EncodeAsBulkArray(elements)
 						_, _ = conn.Write(res)
 					}
+				case *serializer.LPushCommand:
+					{
+						fmt.Println("Received LPush command")
+						length := lists.LPush(c.Key, c.Value)
+						res, _ := serializer.EncodeNumber(length)
+						_, _ = conn.Write(res)
+					}
 				}
 			}
 		}(conn)

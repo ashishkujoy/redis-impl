@@ -34,6 +34,15 @@ func (l *List) RPush(value string) int {
 	return l.Len()
 }
 
+func (l *List) LPush(value string) int {
+	node := &listNode{value: value}
+	l.head.parent = node
+	node.child = l.head
+	l.head = node
+	l.length++
+	return l.Len()
+}
+
 func (l *List) getNodeByIndex(index int) *listNode {
 	head := l.head
 	for i := 0; i < index; i++ {

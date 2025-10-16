@@ -72,6 +72,11 @@ type RPushCommand struct {
 	Value []string
 }
 
+type LPushCommand struct {
+	Key   string
+	Value []string
+}
+
 func toStrings(elements [][]byte) []string {
 	strs := make([]string, len(elements))
 	for i, e := range elements {
@@ -82,6 +87,13 @@ func toStrings(elements [][]byte) []string {
 
 func NewRPushCommand(elements [][]byte) (*RPushCommand, error) {
 	command := &RPushCommand{}
+	command.Key = string(elements[1])
+	command.Value = toStrings(elements[2:])
+	return command, nil
+}
+
+func NewLPushCommand(elements [][]byte) (*LPushCommand, error) {
+	command := &LPushCommand{}
 	command.Key = string(elements[1])
 	command.Value = toStrings(elements[2:])
 	return command, nil
@@ -189,6 +201,8 @@ func ParseCommand(c net.Conn) (Command, error) {
 		return NewRPushCommand(elements)
 	case "lrange":
 		return NewLRangeCommand(elements)
+	case "lpush":
+		return NewLPushCommand(elements)
 	}
 	return nil, fmt.Errorf("unknown command: %s", string(elements[0]))
 }
