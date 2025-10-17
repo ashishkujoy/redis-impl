@@ -2,6 +2,7 @@ package commands
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 )
 
@@ -95,6 +96,7 @@ type LPopCommand struct {
 }
 
 func (L *LPopCommand) Execute(ctx *ExecutionContext) ([]byte, error) {
+	fmt.Printf("Executing LPop Command on key: %s with count: %d\n", L.Key, L.Count)
 	elements, err := ctx.Lists.LPop(L.Key, L.Count)
 	if err != nil {
 		return nil, err
