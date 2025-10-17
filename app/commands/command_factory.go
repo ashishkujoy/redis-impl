@@ -30,6 +30,6 @@ func SetupCommandRegistry() *CommandRegistry {
 	r.Register("ping", func(i [][]byte) (Command, error) {
 		return NewPingCommand(i)
 	})
-
+	RegisterListCommands(r)
 	return r
 }
