@@ -2,18 +2,9 @@ package parser
 
 import (
 	"errors"
-	"fmt"
 	"io"
-	"net"
 	"strconv"
-	"strings"
-
-	"github.com/codecrafters-io/redis-starter-go/app/commands"
 )
-
-type CommandName = string
-
-type Command interface{}
 
 var EofError = errors.New("EOF")
 
@@ -74,31 +65,4 @@ func ParseArray(c io.Reader) ([][]byte, error) {
 		elements = append(elements, element)
 	}
 	return elements, err
-}
-
-func ParseCommand(c net.Conn) (Command, error) {
-	elements, err := ParseArray(c)
-	if err != nil {
-		return nil, err
-	}
-
-	switch strings.ToLower(string(elements[0])) {
-	case "ping":
-		return &commands.PingCommand{}, nil
-	case "echo":
-		return commands.NewEchoCommand(elements)
-	case "get":
-		return commands.NewGetCommand(elements)
-	case "set":
-		return commands.NewSetCommand(elements)
-	case "rpush":
-		return commands.NewRPushCommand(elements)
-	case "lrange":
-		return commands.NewLRangeCommand(elements)
-	case "lpush":
-		return commands.NewLPushCommand(elements)
-	case "llen":
-		return commands.NewLLENCommand(elements)
-	}
-	return nil, fmt.Errorf("unknown command: %s", string(elements[0]))
 }
