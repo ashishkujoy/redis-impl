@@ -1,9 +1,5 @@
 package ds
 
-import (
-	"errors"
-)
-
 type listNode struct {
 	value  string
 	parent *listNode
@@ -82,14 +78,22 @@ func (l *List) LRange(start int, end int) []string {
 	return elements
 }
 
-func (l *List) LPop() (string, error) {
+func (l *List) popFromLeft() string {
 	oldHead := l.head
-	if oldHead == nil {
-		return "", errors.New("list is empty")
-	}
 	newHead := oldHead.child
 	newHead.parent = nil
 	l.head = newHead
 	l.length--
-	return oldHead.value, nil
+	return oldHead.value
+}
+
+func (l *List) LPop(count int) ([]string, error) {
+	length := l.length
+	elements := make([]string, 0, min(count, length))
+
+	for i := 0; i < count && i < length; i++ {
+		elements = append(elements, l.popFromLeft())
+	}
+
+	return elements, nil
 }

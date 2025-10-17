@@ -58,10 +58,10 @@ func (l *Lists) LLen(key string) int {
 	return list.length
 }
 
-func (l *Lists) LPop(key string) (string, error) {
+func (l *Lists) LPop(key string, count int) ([]string, error) {
 	list, ok := l.lists[key]
 	if !ok {
-		return "", fmt.Errorf("List %s is not present\n", key)
+		return nil, fmt.Errorf("List %s is not present\n", key)
 	}
-	return list.LPop()
+	return list.LPop(count)
 }

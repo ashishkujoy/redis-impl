@@ -90,25 +90,33 @@ func NewLLENCommand(elements [][]byte) (*LLENCommand, error) {
 }
 
 type LPopCommand struct {
-	Key string
+	Key   string
+	Count int
 }
 
 func (L *LPopCommand) Execute(ctx *ExecutionContext) ([]byte, error) {
-	element, err := ctx.Lists.LPop(L.Key)
-	res := ctx.Serializer.NullBulkByte()
-	if err == nil {
-		res, _ = ctx.Serializer.Encode(element)
+	elements, err := ctx.Lists.LPop(L.Key, L.Count)
+	if err != nil {
+		return nil, err
 	}
 
-	return res, nil
+	return ctx.Serializer.Encode(elements)
 }
 
 func NewLPopCommand(element [][]byte) (*LPopCommand, error) {
-	if len(element) != 1 {
+	if len(element) == 0 {
 		return nil, errors.New("not enough arguments for LPop command")
 	}
 	command := &LPopCommand{}
 	command.Key = string(element[0])
+	command.Count = 1
+	if len(element) > 1 {
+		count, err := strconv.Atoi(string(element[1]))
+		if err != nil {
+			return nil, err
+		}
+		command.Count = count
+	}
 	return command, nil
 }
 
