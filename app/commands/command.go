@@ -1,7 +1,29 @@
 package commands
 
-type Command interface{}
+import (
+	"github.com/codecrafters-io/redis-starter-go/app/store"
+	"github.com/codecrafters-io/redis-starter-go/app/store/ds"
+)
 
-type CommandFactory = func([][]byte) (Command, error)
+type Serializer interface {
+	Encode(interface{}) ([]byte, error)
+	Decode([]byte) (Command, error)
+}
 
-type CommandFactories = map[string]CommandFactory
+type ExecutionContext struct {
+	Kv         *store.KVStore
+	Lists      *ds.Lists
+	Serializer Serializer
+}
+
+func NewExecutionContext(kv *store.KVStore, lists *ds.Lists, serializer Serializer) *ExecutionContext {
+	return &ExecutionContext{
+		Kv:         kv,
+		Lists:      lists,
+		Serializer: serializer,
+	}
+}
+
+type Command interface {
+	Execute(ctx *ExecutionContext) ([]byte, error)
+}

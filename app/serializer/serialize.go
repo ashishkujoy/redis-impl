@@ -2,7 +2,42 @@ package serializer
 
 import (
 	"strconv"
+
+	"github.com/codecrafters-io/redis-starter-go/app/commands"
 )
+
+type RESPSerializer struct {
+}
+
+func NewRESPSerializer() RESPSerializer {
+	return RESPSerializer{}
+}
+
+func (r RESPSerializer) Encode(i interface{}) ([]byte, error) {
+	switch c := i.(type) {
+	case int:
+		{
+			return EncodeNumber(c)
+		}
+	case []byte:
+		{
+			return EncodeBytesAsBulkString(c)
+		}
+	case string:
+		{
+			return EncodeBulkString(c)
+		}
+	case []string:
+		{
+			return EncodeAsBulkArray(c)
+		}
+	}
+	return nil, nil
+}
+
+func (r RESPSerializer) Decode(bytes []byte) (commands.Command, error) {
+	panic("implement me")
+}
 
 func EncodeBulkString(message string) ([]byte, error) {
 	return EncodeBytesAsBulkString([]byte(message))
