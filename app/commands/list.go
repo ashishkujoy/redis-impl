@@ -96,10 +96,15 @@ type LPopCommand struct {
 }
 
 func (L *LPopCommand) Execute(ctx *ExecutionContext) ([]byte, error) {
-	fmt.Printf("Executing LPop Command on key: %s with count: %d\n", L.Key, L.Count)
 	elements, err := ctx.Lists.LPop(L.Key, L.Count)
 	if err != nil {
 		return nil, err
+	}
+	if len(elements) == 0 {
+		return ctx.Serializer.NullBulkByte(), nil
+	}
+	if len(elements) == 1 {
+		return ctx.Serializer.EncodeBulkString(elements[0])
 	}
 
 	return ctx.Serializer.Encode(elements)

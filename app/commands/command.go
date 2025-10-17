@@ -7,6 +7,7 @@ import (
 
 type Serializer interface {
 	Encode(interface{}) ([]byte, error)
+	EncodeBulkString(string) ([]byte, error)
 	Decode([]byte) (Command, error)
 	NullBulkByte() []byte
 }

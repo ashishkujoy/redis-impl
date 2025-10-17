@@ -9,6 +9,10 @@ import (
 type RESPSerializer struct {
 }
 
+func (r RESPSerializer) EncodeBulkString(msg string) ([]byte, error) {
+	return EncodeBytesAsBulkString([]byte(msg))
+}
+
 func NewRESPSerializer() RESPSerializer {
 	return RESPSerializer{}
 }

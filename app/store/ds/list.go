@@ -81,7 +81,9 @@ func (l *List) LRange(start int, end int) []string {
 func (l *List) popFromLeft() string {
 	oldHead := l.head
 	newHead := oldHead.child
-	newHead.parent = nil
+	if newHead != nil {
+		newHead.parent = nil
+	}
 	l.head = newHead
 	l.length--
 	return oldHead.value
