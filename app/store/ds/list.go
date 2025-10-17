@@ -2,7 +2,6 @@ package ds
 
 import (
 	"errors"
-	"fmt"
 )
 
 type listNode struct {
