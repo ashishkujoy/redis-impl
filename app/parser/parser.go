@@ -1,26 +1,19 @@
-package serializer
+package parser
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"strconv"
 	"strings"
+
+	"github.com/codecrafters-io/redis-starter-go/app/commands"
 )
 
 type CommandName = string
 
-const (
-	PING CommandName = "ping"
-	ECHO CommandName = "echo"
-	GET  CommandName = "get"
-	SET  CommandName = "set"
-)
-
-type Command struct {
-	Name CommandName
-	Args []string
-}
+type Command interface{}
 
 var EofError = errors.New("EOF")
 
@@ -45,20 +38,20 @@ func toNumber(n []byte) (int, error) {
 	return strconv.Atoi(string(n))
 }
 
-func readNextElement(buf []byte, cursor int) (string, int, error) {
+func readNextElement(buf []byte, cursor int) ([]byte, int, error) {
 	token, cursor, err := readToken(buf, cursor+1)
 	if err != nil {
-		return "", cursor, err
+		return nil, cursor, err
 	}
 	elementSize, err := toNumber(token)
 	if err != nil {
-		return "", cursor, err
+		return nil, cursor, err
 	}
-	elem := string(buf[cursor : cursor+elementSize])
+	elem := buf[cursor : cursor+elementSize]
 	return elem, cursor + elementSize + 2, nil
 }
 
-func ParseArray(c io.Reader) ([]string, error) {
+func ParseArray(c io.Reader) ([][]byte, error) {
 	buf := make([]byte, 1024)
 	length, err := c.Read(buf)
 	if err != nil {
@@ -71,7 +64,7 @@ func ParseArray(c io.Reader) ([]string, error) {
 		return nil, err
 	}
 	elemCount, err := toNumber(elemCountByte)
-	elements := make([]string, 0, elemCount)
+	elements := make([][]byte, 0, elemCount)
 	for cursor < length {
 		element, nextCursor, err := readNextElement(buf, cursor)
 		if errors.Is(err, EofError) {
@@ -83,18 +76,29 @@ func ParseArray(c io.Reader) ([]string, error) {
 	return elements, err
 }
 
-func ParseCommand(c net.Conn) (*Command, error) {
+func ParseCommand(c net.Conn) (Command, error) {
 	elements, err := ParseArray(c)
 	if err != nil {
 		return nil, err
 	}
-	var args []string
-	if len(elements) > 1 {
-		args = elements[1:]
-	}
 
-	return &Command{
-		Name: strings.ToLower(elements[0]),
-		Args: args,
-	}, nil
+	switch strings.ToLower(string(elements[0])) {
+	case "ping":
+		return &commands.PingCommand{}, nil
+	case "echo":
+		return commands.NewEchoCommand(elements)
+	case "get":
+		return commands.NewGetCommand(elements)
+	case "set":
+		return commands.NewSetCommand(elements)
+	case "rpush":
+		return commands.NewRPushCommand(elements)
+	case "lrange":
+		return commands.NewLRangeCommand(elements)
+	case "lpush":
+		return commands.NewLPushCommand(elements)
+	case "llen":
+		return commands.NewLLENCommand(elements)
+	}
+	return nil, fmt.Errorf("unknown command: %s", string(elements[0]))
 }
