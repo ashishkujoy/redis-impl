@@ -23,3 +23,12 @@ func NewEchoCommand(elements [][]byte) (*EchoCommand, error) {
 		Message: string(elements[0]),
 	}, nil
 }
+
+func RegisterMetaCommands(registry *CommandRegistry) {
+	registry.Register("ping", func(args [][]byte) (Command, error) {
+		return NewPingCommand(args)
+	})
+	registry.Register("echo", func(args [][]byte) (Command, error) {
+		return NewEchoCommand(args)
+	})
+}

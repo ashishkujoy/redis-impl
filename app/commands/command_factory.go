@@ -24,12 +24,9 @@ func SetupCommandRegistry() *CommandRegistry {
 	factories := make(map[string]CommandFactory)
 	r := &CommandRegistry{factories: factories}
 
-	r.Register("echo", func(i [][]byte) (Command, error) {
-		return NewEchoCommand(i)
-	})
-	r.Register("ping", func(i [][]byte) (Command, error) {
-		return NewPingCommand(i)
-	})
+	RegisterMetaCommands(r)
+	RegisterKVCommands(r)
 	RegisterListCommands(r)
+
 	return r
 }
