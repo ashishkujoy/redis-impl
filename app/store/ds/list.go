@@ -1,5 +1,10 @@
 package ds
 
+import (
+	"errors"
+	"fmt"
+)
+
 type listNode struct {
 	value  string
 	parent *listNode
@@ -76,4 +81,16 @@ func (l *List) LRange(start int, end int) []string {
 		startingNode = startingNode.child
 	}
 	return elements
+}
+
+func (l *List) LPop() (string, error) {
+	oldHead := l.head
+	if oldHead == nil {
+		return "", errors.New("list is empty")
+	}
+	newHead := oldHead.child
+	newHead.parent = nil
+	l.head = newHead
+	l.length--
+	return oldHead.value, nil
 }

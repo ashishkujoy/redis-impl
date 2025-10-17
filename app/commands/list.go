@@ -1,6 +1,9 @@
 package commands
 
-import "strconv"
+import (
+	"errors"
+	"strconv"
+)
 
 type RPushCommand struct {
 	Key   string
@@ -86,6 +89,29 @@ func NewLLENCommand(elements [][]byte) (*LLENCommand, error) {
 	return command, nil
 }
 
+type LPopCommand struct {
+	Key string
+}
+
+func (L *LPopCommand) Execute(ctx *ExecutionContext) ([]byte, error) {
+	element, err := ctx.Lists.LPop(L.Key)
+	res := ctx.Serializer.NullBulkByte()
+	if err == nil {
+		res, _ = ctx.Serializer.Encode(element)
+	}
+
+	return res, nil
+}
+
+func NewLPopCommand(element [][]byte) (*LPopCommand, error) {
+	if len(element) != 1 {
+		return nil, errors.New("not enough arguments for LPop command")
+	}
+	command := &LPopCommand{}
+	command.Key = string(element[0])
+	return command, nil
+}
+
 func RegisterListCommands(registry *CommandRegistry) *CommandRegistry {
 	registry.Register("rpush", func(elements [][]byte) (Command, error) {
 		return NewRPushCommand(elements)
@@ -98,6 +124,9 @@ func RegisterListCommands(registry *CommandRegistry) *CommandRegistry {
 	})
 	registry.Register("llen", func(elements [][]byte) (Command, error) {
 		return NewLLENCommand(elements)
+	})
+	registry.Register("lpop", func(elements [][]byte) (Command, error) {
+		return NewLPopCommand(elements)
 	})
 	return registry
 }

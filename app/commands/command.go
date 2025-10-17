@@ -8,6 +8,7 @@ import (
 type Serializer interface {
 	Encode(interface{}) ([]byte, error)
 	Decode([]byte) (Command, error)
+	NullBulkByte() []byte
 }
 
 type ExecutionContext struct {

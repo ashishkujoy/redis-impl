@@ -57,3 +57,11 @@ func (l *Lists) LLen(key string) int {
 	}
 	return list.length
 }
+
+func (l *Lists) LPop(key string) (string, error) {
+	list, ok := l.lists[key]
+	if !ok {
+		return "", fmt.Errorf("List %s is not present\n", key)
+	}
+	return list.LPop()
+}

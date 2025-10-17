@@ -39,6 +39,10 @@ func (r RESPSerializer) Decode(bytes []byte) (commands.Command, error) {
 	panic("implement me")
 }
 
+func (r RESPSerializer) NullBulkByte() []byte {
+	return []byte("$-1\r\n")
+}
+
 func EncodeBulkString(message string) ([]byte, error) {
 	return EncodeBytesAsBulkString([]byte(message))
 }
