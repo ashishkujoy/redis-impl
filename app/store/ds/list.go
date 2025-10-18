@@ -25,7 +25,18 @@ func (l *List) Len() int {
 	return l.length
 }
 
+func (l *List) pushInEmptyList(value string) int {
+	node := &listNode{value: value}
+	l.head = node
+	l.tail = node
+	l.length++
+	return 1
+}
+
 func (l *List) RPush(value string) int {
+	if l.length == 0 {
+		return l.pushInEmptyList(value)
+	}
 	node := &listNode{value: value}
 	l.tail.child = node
 	node.parent = l.tail
@@ -35,6 +46,9 @@ func (l *List) RPush(value string) int {
 }
 
 func (l *List) LPush(value string) int {
+	if l.length == 0 {
+		return l.pushInEmptyList(value)
+	}
 	node := &listNode{value: value}
 	l.head.parent = node
 	node.child = l.head

@@ -1,29 +1,46 @@
 package ds
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+)
 
 type Lists struct {
-	lists map[string]*List
+	mutex                sync.RWMutex
+	lists                map[string]*List
+	blockingQueueManager *BlockingQueueManager
 }
 
-func NewLists() *Lists {
-	return &Lists{lists: make(map[string]*List)}
+func NewLists(blockingQueueManager *BlockingQueueManager) *Lists {
+	return &Lists{
+		mutex:                sync.RWMutex{},
+		lists:                make(map[string]*List),
+		blockingQueueManager: blockingQueueManager,
+	}
 }
 
 func (l *Lists) RPush(name string, values []string) int {
 	list, ok := l.lists[name]
 	if !ok {
-		fmt.Printf("List %s is nil\n", name)
 		list = NewList(values[0])
-
 		l.lists[name] = list
 		values = values[1:]
 	}
-	fmt.Printf("List %s is exist\n", name)
 	for _, value := range values {
 		list.RPush(value)
 	}
+	go l.Wake(name)
 	return list.length
+}
+
+func (l *Lists) Wake(key string) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+	if l.blockingQueueManager.AnyBlockOn(key) {
+		values, _ := l.LPop(key, 1)
+		l.blockingQueueManager.Unblock(key, values[0])
+	}
+	return
 }
 
 func (l *Lists) LPush(name string, values []string) int {
@@ -39,6 +56,7 @@ func (l *Lists) LPush(name string, values []string) int {
 	for _, value := range values {
 		list.LPush(value)
 	}
+	go l.Wake(name)
 	return list.length
 }
 

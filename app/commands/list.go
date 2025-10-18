@@ -126,6 +126,32 @@ func NewLPopCommand(element [][]byte) (*LPopCommand, error) {
 	return command, nil
 }
 
+type BLPopCommand struct {
+	Key string
+}
+
+func NewBLPopCommand(element [][]byte) (*BLPopCommand, error) {
+	if len(element) == 0 {
+		return nil, errors.New("not enough arguments for BLPop command")
+	}
+	command := &BLPopCommand{}
+	command.Key = string(element[0])
+	return command, nil
+}
+
+func (c *BLPopCommand) Execute(ctx *ExecutionContext) ([]byte, error) {
+	values, err := ctx.Lists.LPop(c.Key, 1)
+	if err != nil {
+		return nil, err
+	}
+	if len(values) == 0 {
+		blockedClient := ctx.BlockingQueueManager.BlockOn(c.Key)
+		value := <-blockedClient.WakeChan
+		values = append(values, value)
+	}
+	return ctx.Serializer.Encode(values)
+}
+
 func RegisterListCommands(registry *CommandRegistry) *CommandRegistry {
 	registry.Register("rpush", func(elements [][]byte) (Command, error) {
 		return NewRPushCommand(elements)
@@ -141,6 +167,9 @@ func RegisterListCommands(registry *CommandRegistry) *CommandRegistry {
 	})
 	registry.Register("lpop", func(elements [][]byte) (Command, error) {
 		return NewLPopCommand(elements)
+	})
+	registry.Register("blpop", func(elements [][]byte) (Command, error) {
+		return NewBLPopCommand(elements)
 	})
 	return registry
 }

@@ -21,9 +21,10 @@ type Server struct {
 
 func NewServer() *Server {
 	kvStore := store.NewKVStore()
-	lists := ds.NewLists()
+	blockingQueueManager := ds.NewBlockingQueueManager()
+	lists := ds.NewLists(blockingQueueManager)
 	var respSerializer commands.Serializer = serializer.NewRESPSerializer()
-	executionContext := commands.NewExecutionContext(kvStore, lists, respSerializer)
+	executionContext := commands.NewExecutionContext(kvStore, lists, respSerializer, blockingQueueManager)
 	registry := commands.SetupCommandRegistry()
 
 	return &Server{
