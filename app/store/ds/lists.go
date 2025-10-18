@@ -1,7 +1,6 @@
 package ds
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -46,13 +45,11 @@ func (l *Lists) Wake(key string) {
 func (l *Lists) LPush(name string, values []string) int {
 	list, ok := l.lists[name]
 	if !ok {
-		fmt.Printf("List %s is nil\n", name)
 		list = NewList(values[0])
 
 		l.lists[name] = list
 		values = values[1:]
 	}
-	fmt.Printf("List %s is exist\n", name)
 	for _, value := range values {
 		list.LPush(value)
 	}
@@ -79,7 +76,10 @@ func (l *Lists) LLen(key string) int {
 func (l *Lists) LPop(key string, count int) ([]string, error) {
 	list, ok := l.lists[key]
 	if !ok {
-		return nil, fmt.Errorf("List %s is not present\n", key)
+		l.mutex.Lock()
+		defer l.mutex.Unlock()
+		l.lists[key] = NewList(key)
+		return make([]string, 0), nil
 	}
 	return list.LPop(count)
 }
