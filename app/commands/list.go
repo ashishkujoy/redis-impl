@@ -95,10 +95,8 @@ type LPopCommand struct {
 }
 
 func (L *LPopCommand) Execute(ctx *ExecutionContext) ([]byte, error) {
-	elements, err := ctx.Lists.LPop(L.Key, L.Count)
-	if err != nil {
-		return nil, err
-	}
+	elements := ctx.Lists.LPop(L.Key, L.Count)
+
 	if len(elements) == 0 {
 		return ctx.Serializer.NullBulkByte(), nil
 	}
@@ -140,13 +138,12 @@ func NewBLPopCommand(element [][]byte) (*BLPopCommand, error) {
 }
 
 func (c *BLPopCommand) Execute(ctx *ExecutionContext) ([]byte, error) {
-	values, err := ctx.Lists.LPop(c.Key, 1)
-	if err != nil {
-		return nil, err
-	}
+	values := ctx.Lists.LPop(c.Key, 1)
+
 	if len(values) == 0 {
 		blockedClient := ctx.BlockingQueueManager.BlockOn(c.Key)
 		value := <-blockedClient.WakeChan
+		values = append(values, c.Key)
 		values = append(values, value)
 	}
 	return ctx.Serializer.Encode(values)

@@ -12,6 +12,10 @@ type List struct {
 	tail   *listNode
 }
 
+func NewEmptyList() *List {
+	return &List{length: 0, head: nil, tail: nil}
+}
+
 func NewList(value string) *List {
 	node := &listNode{value: value}
 	return &List{
@@ -103,7 +107,7 @@ func (l *List) popFromLeft() string {
 	return oldHead.value
 }
 
-func (l *List) LPop(count int) ([]string, error) {
+func (l *List) LPop(count int) []string {
 	length := l.length
 	elements := make([]string, 0, min(count, length))
 
@@ -111,5 +115,5 @@ func (l *List) LPop(count int) ([]string, error) {
 		elements = append(elements, l.popFromLeft())
 	}
 
-	return elements, nil
+	return elements
 }

@@ -36,8 +36,10 @@ func (l *Lists) Wake(key string) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	if l.blockingQueueManager.AnyBlockOn(key) {
-		values, _ := l.LPop(key, 1)
-		l.blockingQueueManager.Unblock(key, values[0])
+		values := l.LPop(key, 1)
+		if len(values) != 0 {
+			l.blockingQueueManager.Unblock(key, values[0])
+		}
 	}
 	return
 }
@@ -73,13 +75,13 @@ func (l *Lists) LLen(key string) int {
 	return list.length
 }
 
-func (l *Lists) LPop(key string, count int) ([]string, error) {
+func (l *Lists) LPop(key string, count int) []string {
 	list, ok := l.lists[key]
 	if !ok {
 		l.mutex.Lock()
 		defer l.mutex.Unlock()
-		l.lists[key] = NewList(key)
-		return make([]string, 0), nil
+		l.lists[key] = NewEmptyList()
+		return make([]string, 0)
 	}
 	return list.LPop(count)
 }
