@@ -1,8 +1,10 @@
 package commands
 
 import (
+	"context"
 	"errors"
 	"strconv"
+	"time"
 )
 
 type RPushCommand struct {
@@ -125,28 +127,67 @@ func NewLPopCommand(element [][]byte) (*LPopCommand, error) {
 }
 
 type BLPopCommand struct {
-	Key string
+	Key     string
+	Timeout int
 }
 
 func NewBLPopCommand(element [][]byte) (*BLPopCommand, error) {
 	if len(element) == 0 {
 		return nil, errors.New("not enough arguments for BLPop command")
 	}
-	command := &BLPopCommand{}
-	command.Key = string(element[0])
-	return command, nil
+	timeout := 0
+	if len(element) > 1 {
+		count, err := strconv.Atoi(string(element[1]))
+		if err != nil {
+			return nil, err
+		}
+		timeout = count
+	}
+	return &BLPopCommand{
+		Key:     string(element[0]),
+		Timeout: timeout,
+	}, nil
 }
 
 func (c *BLPopCommand) Execute(ctx *ExecutionContext) ([]byte, error) {
 	values := ctx.Lists.LPop(c.Key, 1)
 
 	if len(values) == 0 {
-		blockedClient := ctx.BlockingQueueManager.BlockOn(c.Key)
-		value := <-blockedClient.WakeChan
+		value := ""
+		if c.Timeout == 0 {
+			value = c.blockIndefinitely(ctx)
+		} else {
+			v, err := c.blockWithTimeout(ctx)
+			if err != nil {
+				return ctx.Serializer.NullArray(), nil
+			}
+			value = v
+		}
 		values = append(values, c.Key)
 		values = append(values, value)
+
 	}
 	return ctx.Serializer.Encode(values)
+}
+
+func (c *BLPopCommand) blockIndefinitely(ctx *ExecutionContext) string {
+	ct := context.Background()
+	blockedClient := ctx.BlockingQueueManager.BlockOn(c.Key, ct)
+	return <-blockedClient.WakeChan
+}
+
+func (c *BLPopCommand) blockWithTimeout(ctx *ExecutionContext) (string, error) {
+	ct, cancel := context.WithTimeout(context.Background(), time.Duration(c.Timeout)*time.Second)
+	defer cancel()
+	blockedClient := ctx.BlockingQueueManager.BlockOn(c.Key, ct)
+	for {
+		select {
+		case value := <-blockedClient.WakeChan:
+			return value, nil
+		case <-blockedClient.TimeoutChan:
+			return "", errors.New("timeout")
+		}
+	}
 }
 
 func RegisterListCommands(registry *CommandRegistry) *CommandRegistry {

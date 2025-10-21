@@ -10,6 +10,7 @@ type Serializer interface {
 	EncodeBulkString(string) ([]byte, error)
 	Decode([]byte) (Command, error)
 	NullBulkByte() []byte
+	NullArray() []byte
 }
 
 type ExecutionContext struct {
