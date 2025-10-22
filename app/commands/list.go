@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 )
@@ -128,16 +129,17 @@ func NewLPopCommand(element [][]byte) (*LPopCommand, error) {
 
 type BLPopCommand struct {
 	Key     string
-	Timeout int
+	Timeout float64
 }
 
 func NewBLPopCommand(element [][]byte) (*BLPopCommand, error) {
 	if len(element) == 0 {
 		return nil, errors.New("not enough arguments for BLPop command")
 	}
-	timeout := 0
+	timeout := 0.0
 	if len(element) > 1 {
-		count, err := strconv.Atoi(string(element[1]))
+		count, err := strconv.ParseFloat(string(element[1]), 64)
+		fmt.Printf("Parsed count %+v\n", count)
 		if err != nil {
 			return nil, err
 		}
@@ -177,14 +179,21 @@ func (c *BLPopCommand) blockIndefinitely(ctx *ExecutionContext) string {
 }
 
 func (c *BLPopCommand) blockWithTimeout(ctx *ExecutionContext) (string, error) {
-	ct, cancel := context.WithTimeout(context.Background(), time.Duration(c.Timeout)*time.Second)
-	defer cancel()
+	ct, cancel := context.WithTimeout(context.Background(), time.Duration(c.Timeout*1000)*time.Millisecond)
+	defer func() {
+		fmt.Printf("Exiting from block with timeout\n")
+		cancel()
+	}()
+	start := time.Now()
 	blockedClient := ctx.BlockingQueueManager.BlockOn(c.Key, ct)
 	for {
 		select {
 		case value := <-blockedClient.WakeChan:
 			return value, nil
 		case <-blockedClient.TimeoutChan:
+			end := time.Now()
+			elapsed := end.Sub(start)
+			fmt.Printf("elapsed: %s\n", elapsed)
 			return "", errors.New("timeout")
 		}
 	}
