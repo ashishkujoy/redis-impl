@@ -17,6 +17,14 @@ func (r RESPSerializer) EncodeBulkString(msg string) ([]byte, error) {
 	return EncodeBytesAsBulkString([]byte(msg))
 }
 
+func (r RESPSerializer) EncodeError(message string) []byte {
+	buf := make([]byte, 0, len(message)+3)
+	buf = append(buf, '-')
+	buf = append(buf, []byte(message)...)
+	buf = append(buf, '\r', '\n')
+	return buf
+}
+
 func NewRESPSerializer() RESPSerializer {
 	return RESPSerializer{}
 }

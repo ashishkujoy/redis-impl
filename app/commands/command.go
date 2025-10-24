@@ -12,6 +12,7 @@ type Serializer interface {
 	Decode([]byte) (Command, error)
 	NullBulkByte() []byte
 	NullArray() []byte
+	EncodeError(string) []byte
 }
 
 type ExecutionContext struct {
