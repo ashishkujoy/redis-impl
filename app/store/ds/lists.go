@@ -85,3 +85,8 @@ func (l *Lists) LPop(key string, count int) []string {
 	}
 	return list.LPop(count)
 }
+
+func (l *Lists) Contains(key string) bool {
+	_, ok := l.lists[key]
+	return ok
+}

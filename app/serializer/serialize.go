@@ -21,6 +21,15 @@ func NewRESPSerializer() RESPSerializer {
 	return RESPSerializer{}
 }
 
+func (r RESPSerializer) EncodeSimpleString(s string) ([]byte, error) {
+	buf := make([]byte, 0, len(s)+3)
+	buf = append(buf, '+')
+	buf = append(buf, []byte(s)...)
+	buf = append(buf, '\r', '\n')
+
+	return buf, nil
+}
+
 func (r RESPSerializer) Encode(i interface{}) ([]byte, error) {
 	switch c := i.(type) {
 	case int:

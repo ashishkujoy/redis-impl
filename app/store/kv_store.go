@@ -32,3 +32,8 @@ func (kv *KVStore) Get(key string) (string, bool) {
 func (kv *KVStore) Set(key string, value string, px int) {
 	kv.Entries[key] = EntryValue{value, time.Now(), px}
 }
+
+func (kv *KVStore) Contains(key string) bool {
+	_, ok := kv.Entries[key]
+	return ok
+}
