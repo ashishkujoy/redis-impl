@@ -23,8 +23,15 @@ func NewServer() *Server {
 	kvStore := store.NewKVStore()
 	blockingQueueManager := ds.NewBlockingQueueManager()
 	lists := ds.NewLists(blockingQueueManager)
+	streams := ds.NewStreams()
 	var respSerializer commands.Serializer = serializer.NewRESPSerializer()
-	executionContext := commands.NewExecutionContext(kvStore, lists, respSerializer, blockingQueueManager)
+	executionContext := commands.NewExecutionContext(
+		kvStore,
+		lists,
+		streams,
+		respSerializer,
+		blockingQueueManager,
+	)
 	registry := commands.SetupCommandRegistry()
 
 	return &Server{

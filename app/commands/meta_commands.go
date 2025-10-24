@@ -39,16 +39,21 @@ func NewTypeCommand(elements [][]byte) (*TypeCommand, error) {
 	}, nil
 }
 
+func (t *TypeCommand) getType(ctx *ExecutionContext) string {
+	switch true {
+	case ctx.Kv.Contains(t.Key):
+		return "string"
+	case ctx.Lists.Contains(t.Key):
+		return "array"
+	case ctx.Streams.Contains(t.Key):
+		return "stream"
+	default:
+		return "none"
+	}
+}
+
 func (t *TypeCommand) Execute(ctx *ExecutionContext) ([]byte, error) {
-	isString := ctx.Kv.Contains(t.Key)
-	isArray := ctx.Lists.Contains(t.Key)
-	valueType := "none"
-	if isString {
-		valueType = "string"
-	}
-	if isArray {
-		valueType = "array"
-	}
+	valueType := t.getType(ctx)
 	return ctx.Serializer.EncodeSimpleString(valueType)
 }
 

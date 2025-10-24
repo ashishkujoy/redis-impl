@@ -17,6 +17,7 @@ type Serializer interface {
 type ExecutionContext struct {
 	Kv                   *store.KVStore
 	Lists                *ds.Lists
+	Streams              *ds.Streams
 	Serializer           Serializer
 	BlockingQueueManager *ds.BlockingQueueManager
 }
@@ -24,12 +25,14 @@ type ExecutionContext struct {
 func NewExecutionContext(
 	kv *store.KVStore,
 	lists *ds.Lists,
+	streams *ds.Streams,
 	serializer Serializer,
 	blockingQueueManager *ds.BlockingQueueManager,
 ) *ExecutionContext {
 	return &ExecutionContext{
 		Kv:                   kv,
 		Lists:                lists,
+		Streams:              streams,
 		Serializer:           serializer,
 		BlockingQueueManager: blockingQueueManager,
 	}

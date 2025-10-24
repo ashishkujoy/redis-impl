@@ -31,6 +31,7 @@ func SetupCommandRegistry() *CommandRegistry {
 	RegisterMetaCommands(r)
 	RegisterKVCommands(r)
 	RegisterListCommands(r)
+	RegisterStreamCommands(r)
 
 	return r
 }
