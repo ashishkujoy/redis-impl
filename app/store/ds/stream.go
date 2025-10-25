@@ -30,7 +30,10 @@ func (s *Streams) validateKey(key string, timestamp, sequence int) error {
 	if !ok {
 		return nil
 	}
-	if existingEntry.Timestamp <= timestamp && existingEntry.Sequence < sequence {
+	if existingEntry.Timestamp < timestamp {
+		return nil
+	}
+	if existingEntry.Timestamp == timestamp && existingEntry.Sequence < sequence {
 		return nil
 	}
 	return errors.New("ERR The ID specified in XADD is equal or smaller than the target stream top item")

@@ -23,7 +23,7 @@ func TestReadNextElement(t *testing.T) {
 	element, cursor, err := readNextElement([]byte("*2\r\n$5\r\nhello\r\n$5\r\nworld\r\n"), 4)
 	assert.NoError(t, err)
 	assert.Equal(t, 15, cursor)
-	assert.Equal(t, "hello", element)
+	assert.Equal(t, []byte("hello"), element)
 }
 
 func TestReadNextElementForEnd(t *testing.T) {
@@ -45,7 +45,7 @@ func TestArrayParsingSingleElementArray(t *testing.T) {
 	array, err := ParseArray(reader)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(array))
-	assert.Equal(t, "hello", array[0])
+	assert.Equal(t, []byte("hello"), array[0])
 }
 
 func TestArrayParsingMultiElementArray(t *testing.T) {
@@ -53,7 +53,7 @@ func TestArrayParsingMultiElementArray(t *testing.T) {
 	array, err := ParseArray(reader)
 	assert.NoError(t, err)
 	assert.Equal(t, 3, len(array))
-	assert.Equal(t, "hello", array[0])
-	assert.Equal(t, "world", array[1])
-	assert.Equal(t, "something", array[2])
+	assert.Equal(t, []byte("hello"), array[0])
+	assert.Equal(t, []byte("world"), array[1])
+	assert.Equal(t, []byte("something"), array[2])
 }
