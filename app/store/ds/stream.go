@@ -16,7 +16,6 @@ const (
 )
 
 type StreamEntry struct {
-	Id        string
 	Timestamp int
 	Sequence  int
 }
@@ -26,8 +25,8 @@ type StreamID struct {
 	Sequence  int
 }
 
-func NewStreamEntry(id string, timestamp int, sequence int) *StreamEntry {
-	return &StreamEntry{Id: id, Timestamp: timestamp, Sequence: sequence}
+func NewStreamEntry(timestamp int, sequence int) *StreamEntry {
+	return &StreamEntry{Timestamp: timestamp, Sequence: sequence}
 }
 
 type Streams struct {
@@ -151,7 +150,7 @@ func (s *Streams) Add(key string, id string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	stream := NewStreamEntry(key, streamID.Timestamp, streamID.Sequence)
+	stream := NewStreamEntry(streamID.Timestamp, streamID.Sequence)
 	s.streams[key] = append(s.streams[key], stream)
 	return fmt.Sprintf("%d-%d", streamID.Timestamp, streamID.Sequence), nil
 }
