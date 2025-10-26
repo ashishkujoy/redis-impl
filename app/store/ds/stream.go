@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/codecrafters-io/redis-starter-go/app/store"
 )
 
 type Stream struct {
@@ -19,11 +21,20 @@ func NewStream(id string, timestamp int, sequence int) *Stream {
 
 type Streams struct {
 	streams map[string][]*Stream
+	clock   store.Clock
 }
 
 func NewStreams() *Streams {
 	return &Streams{
 		streams: make(map[string][]*Stream),
+		clock:   store.NewSystemClock(),
+	}
+}
+
+func NewStreamsWithClock(clock store.Clock) *Streams {
+	return &Streams{
+		streams: make(map[string][]*Stream),
+		clock:   clock,
 	}
 }
 
@@ -66,14 +77,34 @@ func (s *Streams) generateSequence(key string, timestamp int) int {
 	return timestampHead.Sequence + 1
 }
 
+func (s *Streams) generateTimestamp(key string, timestampToken string) int {
+	timestamp, err := strconv.Atoi(timestampToken)
+	if err == nil {
+		return timestamp
+	}
+	stream, ok := s.streams[key]
+	defaultTimestamp := s.clock.CurrentMillis()
+	if !ok {
+		return defaultTimestamp
+	}
+	if len(stream) == 0 {
+		return defaultTimestamp
+	}
+	lastEntry := stream[len(stream)-1]
+	if lastEntry.Timestamp >= defaultTimestamp {
+		return lastEntry.Timestamp + 1
+	}
+	return defaultTimestamp
+}
+
 func (s *Streams) getTimestampAndSequence(key string, id string) (int, int, error) {
 	tokens := strings.Split(id, "-")
-	if len(tokens) != 2 {
+	if len(tokens) < 1 {
 		return 0, 0, errors.New("ERR The ID specified in XADD is invalid")
 	}
-	timestamp, err := strconv.Atoi(tokens[0])
-	if err != nil {
-		return 0, 0, errors.New("ERR The ID specified in XADD is invalid")
+	timestamp := s.generateTimestamp(key, tokens[0])
+	if len(tokens) == 1 {
+		tokens = append(tokens, "*")
 	}
 	sequenceToken := tokens[1]
 	if sequenceToken == "*" {
