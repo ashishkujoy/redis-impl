@@ -9,6 +9,12 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/store"
 )
 
+const (
+	ErrInvalidStreamIDGreaterThanZero = "ERR The ID specified in XADD must be greater than 0-0"
+	ErrInvalidStreamIDEqualOrSmaller  = "ERR The ID specified in XADD is equal or smaller than the target stream top item"
+	ErrInvalidStreamID                = "ERR The ID specified in XADD is invalid"
+)
+
 type StreamEntry struct {
 	Id        string
 	Timestamp int
@@ -44,7 +50,7 @@ func NewStreamsWithClock(clock store.Clock) *Streams {
 
 func (s *Streams) validateEntryID(key string, timestamp, sequence int) error {
 	if timestamp < 1 && sequence < 1 {
-		return errors.New("ERR The ID specified in XADD must be greater than 0-0")
+		return errors.New(ErrInvalidStreamIDGreaterThanZero)
 	}
 	existingEntry, ok := s.streams[key]
 	if !ok || len(existingEntry) == 0 {
@@ -57,7 +63,7 @@ func (s *Streams) validateEntryID(key string, timestamp, sequence int) error {
 	if lastEntry.Timestamp == timestamp && lastEntry.Sequence < sequence {
 		return nil
 	}
-	return errors.New("ERR The ID specified in XADD is equal or smaller than the target stream top item")
+	return errors.New(ErrInvalidStreamIDEqualOrSmaller)
 }
 
 func (s *Streams) generateSequence(key string, timestamp int) int {
@@ -112,7 +118,7 @@ func parseStreamID(id string) (string, string, error) {
 	if len(tokens) == 2 {
 		return tokens[0], tokens[1], nil
 	}
-	return "", "", errors.New("ERR The ID specified in XADD is invalid")
+	return "", "", errors.New(ErrInvalidStreamID)
 }
 
 func (s *Streams) generateStreamID(key string, id string) (*StreamID, error) {
@@ -129,7 +135,7 @@ func (s *Streams) generateStreamID(key string, id string) (*StreamID, error) {
 	} else {
 		sequence, err = strconv.Atoi(sequenceToken)
 		if err != nil {
-			return nil, errors.New("ERR The ID specified in XADD is invalid")
+			return nil, errors.New(ErrInvalidStreamID)
 		}
 	}
 
