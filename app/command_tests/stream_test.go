@@ -31,3 +31,18 @@ func TestXADD_CommandWithAutoGenerateSequence(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "$15\r\n1526919030473-0\r\n", string(res))
 }
+
+func TestXADD_CommandWithAutoGenerateRange(t *testing.T) {
+	command, err := commands.NewXADDCommand([][]byte{
+		[]byte("grape"),
+		[]byte("*"),
+		[]byte("foo"),
+		[]byte("bar"),
+	})
+	assert.NoError(t, err)
+	ctx := CreateExecutionContext()
+	_, err = command.Execute(ctx)
+
+	assert.NoError(t, err)
+
+}

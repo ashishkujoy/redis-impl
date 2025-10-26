@@ -1,12 +1,40 @@
 package serializer
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/codecrafters-io/redis-starter-go/app/commands"
+	"github.com/codecrafters-io/redis-starter-go/app/store/ds"
+	"github.com/samber/lo"
 )
 
 type RESPSerializer struct {
+}
+
+func (r RESPSerializer) EncodeStreamEntry(entry *ds.StreamEntryView) []byte {
+	res := make([]byte, 0)
+	res = append(res, []byte("*2\r\n")...)
+
+	id, _ := r.EncodeBulkString(entry.Id)
+	res = append(res, id...)
+
+	dataArray, _ := EncodeAsBulkArray(entry.Data)
+	res = append(res, dataArray...)
+
+	return res
+}
+
+func (r RESPSerializer) EncodeXRange(entries []*ds.StreamEntryView) ([]byte, error) {
+	res := make([]byte, 0)
+	res = append(res, []byte(fmt.Sprintf("*%d\r\n", len(entries)))...)
+
+	elements := lo.Reduce(entries, func(agg []byte, entryView *ds.StreamEntryView, index int) []byte {
+		return append(agg, r.EncodeStreamEntry(entryView)...)
+	}, make([]byte, 0))
+
+	res = append(res, elements...)
+	return res, nil
 }
 
 func (r RESPSerializer) NullArray() []byte {

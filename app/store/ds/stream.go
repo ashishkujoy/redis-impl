@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/codecrafters-io/redis-starter-go/app/store"
+	lo "github.com/samber/lo"
 )
 
 const (
@@ -71,6 +72,7 @@ type Streams struct {
 func NewStreams() *Streams {
 	return &Streams{
 		streams: make(map[string]*Stream),
+		clock:   store.NewSystemClock(),
 	}
 }
 
@@ -218,25 +220,43 @@ func generateStreamId(idStr string, lastSequence int, isEnd bool) *StreamID {
 	return &StreamID{Timestamp: timestamp, Sequence: sequence}
 }
 
-func (s *Streams) List(key string, startStr string, endStr string) []*StreamEntry {
+type StreamEntryView struct {
+	Id   string
+	Data []string
+}
+
+func NewStreamEntryView(id string, data []string) *StreamEntryView {
+	return &StreamEntryView{Id: id, Data: data}
+}
+
+func (s *Streams) List(key string, startStr string, endStr string) []*StreamEntryView {
 	stream, ok := s.streams[key]
 	if !ok {
-		return make([]*StreamEntry, 0)
+		return make([]*StreamEntryView, 0)
 	}
 	if len(stream.entries) == 0 {
-		return make([]*StreamEntry, 0)
+		return make([]*StreamEntryView, 0)
 	}
 	entry := stream.lastEntry()
 	if entry == nil {
-		return make([]*StreamEntry, 0)
+		return make([]*StreamEntryView, 0)
 	}
 	start := generateStreamId(startStr, entry.Sequence, false)
 	end := generateStreamId(endStr, entry.Sequence, true)
-	var entries []*StreamEntry
+	var entries []*StreamEntryView
 	for _, entry := range stream.entries {
 		streamID := NewStreamID(entry.Timestamp, entry.Sequence)
 		if streamID.isInRange(start, end) {
-			entries = append(entries, entry)
+			data := lo.Map(entry.Data, func(item []byte, index int) string {
+				return string(item)
+			})
+			entries = append(
+				entries,
+				NewStreamEntryView(
+					fmt.Sprintf("%d-%d", entry.Timestamp, entry.Sequence),
+					data,
+				),
+			)
 		}
 	}
 	return entries

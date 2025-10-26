@@ -13,6 +13,7 @@ type Serializer interface {
 	NullBulkByte() []byte
 	NullArray() []byte
 	EncodeError(string) []byte
+	EncodeXRange(entries []*ds.StreamEntryView) ([]byte, error)
 }
 
 type ExecutionContext struct {
