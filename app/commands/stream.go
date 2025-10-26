@@ -7,10 +7,8 @@ import (
 )
 
 type XADDCommand struct {
-	Key       string
-	Id        string
-	Timestamp int
-	Sequence  int
+	Key string
+	Id  string
 }
 
 func extractIdParts(id string) (int, int, error) {
@@ -32,27 +30,21 @@ func extractIdParts(id string) (int, int, error) {
 }
 
 func (x *XADDCommand) Execute(ctx *ExecutionContext) ([]byte, error) {
-	err := ctx.Streams.Register(x.Key, x.Timestamp, x.Sequence)
+	id, err := ctx.Streams.Register(x.Key, x.Id)
 	if err != nil {
 		return ctx.Serializer.EncodeError(err.Error()), nil
 	}
-	return ctx.Serializer.Encode(x.Id)
+	return ctx.Serializer.Encode(id)
 }
 
 func NewXADDCommand(elements [][]byte) (*XADDCommand, error) {
 	if len(elements) < 2 {
 		return nil, errors.New("not enough arguments")
 	}
-	timestamp, sequence, err := extractIdParts(string(elements[1]))
-	if err != nil {
-		return nil, err
-	}
 
 	return &XADDCommand{
-		Key:       string(elements[0]),
-		Id:        string(elements[1]),
-		Timestamp: timestamp,
-		Sequence:  sequence,
+		Key: string(elements[0]),
+		Id:  string(elements[1]),
 	}, nil
 }
 
