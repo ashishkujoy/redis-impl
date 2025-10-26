@@ -9,31 +9,35 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/app/store"
 )
 
-type Stream struct {
+type StreamEntry struct {
 	Id        string
 	Timestamp int
 	Sequence  int
 }
 
-func NewStream(id string, timestamp int, sequence int) *Stream {
-	return &Stream{Id: id, Timestamp: timestamp, Sequence: sequence}
+type StreamID struct {
+	Timestamp int
+	Sequence  int
+}
+
+func NewStreamEntry(id string, timestamp int, sequence int) *StreamEntry {
+	return &StreamEntry{Id: id, Timestamp: timestamp, Sequence: sequence}
 }
 
 type Streams struct {
-	streams map[string][]*Stream
+	streams map[string][]*StreamEntry
 	clock   store.Clock
 }
 
 func NewStreams() *Streams {
 	return &Streams{
-		streams: make(map[string][]*Stream),
-		clock:   store.NewSystemClock(),
+		streams: make(map[string][]*StreamEntry),
 	}
 }
 
 func NewStreamsWithClock(clock store.Clock) *Streams {
 	return &Streams{
-		streams: make(map[string][]*Stream),
+		streams: make(map[string][]*StreamEntry),
 		clock:   clock,
 	}
 }
@@ -64,7 +68,7 @@ func (s *Streams) generateSequence(key string, timestamp int) int {
 		}
 		return 0
 	}
-	var timestampHead *Stream
+	var timestampHead *StreamEntry
 	for _, stream := range existingStream {
 		if stream.Timestamp == timestamp {
 			timestampHead = stream
@@ -127,8 +131,8 @@ func (s *Streams) Register(key string, id string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	stream := NewStream(key, timestamp, sequence)
-	s.streams[key] = []*Stream{stream}
+	stream := NewStreamEntry(key, timestamp, sequence)
+	s.streams[key] = []*StreamEntry{stream}
 	return fmt.Sprintf("%d-%d", timestamp, sequence), nil
 }
 
