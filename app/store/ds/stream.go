@@ -98,7 +98,7 @@ func (s *Streams) generateSequence(key string, timestamp int) int {
 	return 0
 }
 
-func (s *Streams) generateTimestamp(key string, timestampToken string) int {
+func (s *Streams) resolveTimestamp(key string, timestampToken string) int {
 	timestamp, err := strconv.Atoi(timestampToken)
 	if err == nil {
 		return timestamp
@@ -132,22 +132,27 @@ func parseStreamID(id string) (string, string, error) {
 	return "", "", errors.New(ErrInvalidStreamID)
 }
 
+func (s *Streams) resolveSequence(key string, timestamp int, sequenceToken string) (int, error) {
+	if sequenceToken == AutoGenerateIDToken {
+		return s.generateSequence(key, timestamp), nil
+	}
+	sequence, err := strconv.Atoi(sequenceToken)
+	if err != nil {
+		return 0, errors.New(ErrInvalidStreamID)
+	}
+	return sequence, nil
+}
+
 func (s *Streams) generateStreamID(key string, id string) (*StreamID, error) {
 	timestampToken, sequenceToken, err := parseStreamID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	timestamp := s.generateTimestamp(key, timestampToken)
-
-	var sequence int
-	if sequenceToken == AutoGenerateIDToken {
-		sequence = s.generateSequence(key, timestamp)
-	} else {
-		sequence, err = strconv.Atoi(sequenceToken)
-		if err != nil {
-			return nil, errors.New(ErrInvalidStreamID)
-		}
+	timestamp := s.resolveTimestamp(key, timestampToken)
+	sequence, err := s.resolveSequence(key, timestamp, sequenceToken)
+	if err != nil {
+		return nil, err
 	}
 
 	return &StreamID{Timestamp: timestamp, Sequence: sequence}, nil
