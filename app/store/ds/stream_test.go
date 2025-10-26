@@ -270,3 +270,15 @@ func TestListWithMatchingEntry(t *testing.T) {
 	)
 	assert.Equal(t, 0, len(entries))
 }
+
+func TestListWithStartSymbol(t *testing.T) {
+	streams := NewStreams()
+	_, _ = streams.Add("Key1", "1526919030473-0", [][]byte{[]byte("V1")})
+	_, _ = streams.Add("Key1", "1526919030473-2", [][]byte{[]byte("V2")})
+
+	entries := streams.List("Key1", "-", "1526919030473-2")
+	assert.Equal(t, 2, len(entries))
+
+	entries = streams.List("Key1", "-", "1526919030473-1")
+	assert.Equal(t, 1, len(entries))
+}
