@@ -210,10 +210,13 @@ func (s *Streams) Add(key string, id string, data [][]byte) (string, error) {
 	return fmt.Sprintf("%d-%d", streamID.Timestamp, streamID.Sequence), nil
 }
 
-func generateStreamId(idStr string, lastSequence int, isEnd bool) *StreamID {
+func generateStreamId(idStr string, lastEntry *StreamEntry, isEndId bool) *StreamID {
 	tokens := strings.Split(idStr, "-")
-	timestamp, _ := strconv.Atoi(tokens[0])
-	sequence := lastSequence
+	timestamp, err := strconv.Atoi(tokens[0])
+	if err != nil && isEndId {
+		return &StreamID{Timestamp: lastEntry.Timestamp, Sequence: lastEntry.Sequence}
+	}
+	sequence := lastEntry.Sequence
 	if len(tokens) > 1 {
 		sequence, _ = strconv.Atoi(tokens[1])
 	}
@@ -234,15 +237,13 @@ func (s *Streams) List(key string, startStr string, endStr string) []*StreamEntr
 	if !ok {
 		return make([]*StreamEntryView, 0)
 	}
-	if len(stream.entries) == 0 {
+	lastEntry := stream.lastEntry()
+	if lastEntry == nil {
 		return make([]*StreamEntryView, 0)
 	}
-	entry := stream.lastEntry()
-	if entry == nil {
-		return make([]*StreamEntryView, 0)
-	}
-	start := generateStreamId(startStr, entry.Sequence, false)
-	end := generateStreamId(endStr, entry.Sequence, true)
+
+	start := generateStreamId(startStr, lastEntry, false)
+	end := generateStreamId(endStr, lastEntry, true)
 	var entries []*StreamEntryView
 	for _, entry := range stream.entries {
 		streamID := NewStreamID(entry.Timestamp, entry.Sequence)
