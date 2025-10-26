@@ -10,6 +10,7 @@ import (
 )
 
 const (
+	AutoGenerateIDToken             = "*"
 	ErrInvalidStreamIDGreaterThanZero = "ERR The ID specified in XADD must be greater than 0-0"
 	ErrInvalidStreamIDEqualOrSmaller  = "ERR The ID specified in XADD is equal or smaller than the target stream top item"
 	ErrInvalidStreamID                = "ERR The ID specified in XADD is invalid"
@@ -118,12 +119,12 @@ func (s *Streams) generateTimestamp(key string, timestampToken string) int {
 }
 
 func parseStreamID(id string) (string, string, error) {
-	if id == "*" {
-		return "*", "*", nil
+	if id == AutoGenerateIDToken {
+		return AutoGenerateIDToken, AutoGenerateIDToken, nil
 	}
 	tokens := strings.Split(id, "-")
 	if len(tokens) == 1 {
-		return tokens[0], "*", nil
+		return tokens[0], AutoGenerateIDToken, nil
 	}
 	if len(tokens) == 2 {
 		return tokens[0], tokens[1], nil
@@ -140,7 +141,7 @@ func (s *Streams) generateStreamID(key string, id string) (*StreamID, error) {
 	timestamp := s.generateTimestamp(key, timestampToken)
 
 	var sequence int
-	if sequenceToken == "*" {
+	if sequenceToken == AutoGenerateIDToken {
 		sequence = s.generateSequence(key, timestamp)
 	} else {
 		sequence, err = strconv.Atoi(sequenceToken)
