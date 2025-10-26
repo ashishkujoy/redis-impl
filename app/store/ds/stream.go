@@ -208,7 +208,17 @@ func (s *Streams) Add(key string, id string, data [][]byte) (string, error) {
 	return fmt.Sprintf("%d-%d", streamID.Timestamp, streamID.Sequence), nil
 }
 
-func (s *Streams) List(key string, start *StreamID, end *StreamID) []*StreamEntry {
+func generateStreamId(idStr string, lastSequence int, isEnd bool) *StreamID {
+	tokens := strings.Split(idStr, "-")
+	timestamp, _ := strconv.Atoi(tokens[0])
+	sequence := lastSequence
+	if len(tokens) > 1 {
+		sequence, _ = strconv.Atoi(tokens[1])
+	}
+	return &StreamID{Timestamp: timestamp, Sequence: sequence}
+}
+
+func (s *Streams) List(key string, startStr string, endStr string) []*StreamEntry {
 	stream, ok := s.streams[key]
 	if !ok {
 		return make([]*StreamEntry, 0)
@@ -216,6 +226,12 @@ func (s *Streams) List(key string, start *StreamID, end *StreamID) []*StreamEntr
 	if len(stream.entries) == 0 {
 		return make([]*StreamEntry, 0)
 	}
+	entry := stream.lastEntry()
+	if entry == nil {
+		return make([]*StreamEntry, 0)
+	}
+	start := generateStreamId(startStr, entry.Sequence, false)
+	end := generateStreamId(endStr, entry.Sequence, true)
 	var entries []*StreamEntry
 	for _, entry := range stream.entries {
 		streamID := NewStreamID(entry.Timestamp, entry.Sequence)
