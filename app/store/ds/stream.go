@@ -122,7 +122,7 @@ func (s *Streams) getTimestampAndSequence(key string, id string) (int, int, erro
 	return timestamp, sequence, nil
 }
 
-func (s *Streams) Register(key string, id string) (string, error) {
+func (s *Streams) Add(key string, id string) (string, error) {
 	timestamp, sequence, err := s.getTimestampAndSequence(key, id)
 	if err != nil {
 		return "", err
@@ -132,7 +132,7 @@ func (s *Streams) Register(key string, id string) (string, error) {
 		return "", err
 	}
 	stream := NewStreamEntry(key, timestamp, sequence)
-	s.streams[key] = []*StreamEntry{stream}
+	s.streams[key] = append(s.streams[key], stream)
 	return fmt.Sprintf("%d-%d", timestamp, sequence), nil
 }
 

@@ -30,7 +30,7 @@ func extractIdParts(id string) (int, int, error) {
 }
 
 func (x *XADDCommand) Execute(ctx *ExecutionContext) ([]byte, error) {
-	id, err := ctx.Streams.Register(x.Key, x.Id)
+	id, err := ctx.Streams.Add(x.Key, x.Id)
 	if err != nil {
 		return ctx.Serializer.EncodeError(err.Error()), nil
 	}
