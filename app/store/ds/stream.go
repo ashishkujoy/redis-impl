@@ -27,6 +27,27 @@ type StreamID struct {
 	Sequence  int
 }
 
+func NewStreamID(timestamp, sequence int) *StreamID {
+	return &StreamID{
+		Timestamp: timestamp,
+		Sequence:  sequence,
+	}
+}
+
+func (id *StreamID) isInRange(start, end *StreamID) bool {
+	isTimestampInRange := start.Timestamp <= id.Timestamp && id.Timestamp <= end.Timestamp
+	if !isTimestampInRange {
+		return false
+	}
+	if id.Timestamp == start.Timestamp {
+		return id.Sequence >= start.Sequence
+	}
+	if id.Timestamp == end.Timestamp {
+		return id.Sequence <= end.Sequence
+	}
+	return true
+}
+
 func NewStreamEntry(timestamp int, sequence int, data [][]byte) *StreamEntry {
 	return &StreamEntry{Timestamp: timestamp, Sequence: sequence, Data: data}
 }
@@ -185,6 +206,24 @@ func (s *Streams) Add(key string, id string, data [][]byte) (string, error) {
 	entry := NewStreamEntry(streamID.Timestamp, streamID.Sequence, data)
 	s.streams[key].entries = append(s.streams[key].entries, entry)
 	return fmt.Sprintf("%d-%d", streamID.Timestamp, streamID.Sequence), nil
+}
+
+func (s *Streams) List(key string, start *StreamID, end *StreamID) []*StreamEntry {
+	stream, ok := s.streams[key]
+	if !ok {
+		return make([]*StreamEntry, 0)
+	}
+	if len(stream.entries) == 0 {
+		return make([]*StreamEntry, 0)
+	}
+	var entries []*StreamEntry
+	for _, entry := range stream.entries {
+		streamID := NewStreamID(entry.Timestamp, entry.Sequence)
+		if streamID.isInRange(start, end) {
+			entries = append(entries, entry)
+		}
+	}
+	return entries
 }
 
 func (s *Streams) Contains(key string) bool {
