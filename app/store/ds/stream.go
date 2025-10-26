@@ -42,7 +42,7 @@ func NewStreamsWithClock(clock store.Clock) *Streams {
 	}
 }
 
-func (s *Streams) validateKey(key string, timestamp, sequence int) error {
+func (s *Streams) validateEntryID(key string, timestamp, sequence int) error {
 	if timestamp < 1 && sequence < 1 {
 		return errors.New("ERR The ID specified in XADD must be greater than 0-0")
 	}
@@ -62,23 +62,23 @@ func (s *Streams) validateKey(key string, timestamp, sequence int) error {
 
 func (s *Streams) generateSequence(key string, timestamp int) int {
 	existingStream, ok := s.streams[key]
-	if !ok {
+	if !ok || len(existingStream) == 0 {
 		if timestamp == 0 {
 			return 1
 		}
 		return 0
 	}
-	var timestampHead *StreamEntry
-	for _, stream := range existingStream {
-		if stream.Timestamp == timestamp {
-			timestampHead = stream
-		}
+	lastEntry := existingStream[len(existingStream)-1]
+	if lastEntry.Timestamp == timestamp {
+		return lastEntry.Sequence + 1
 	}
-	if timestampHead == nil {
+	if lastEntry.Timestamp < timestamp {
 		return 0
 	}
-
-	return timestampHead.Sequence + 1
+	if timestamp == 0 {
+		return 1
+	}
+	return 0
 }
 
 func (s *Streams) generateTimestamp(key string, timestampToken string) int {
@@ -101,39 +101,53 @@ func (s *Streams) generateTimestamp(key string, timestampToken string) int {
 	return defaultTimestamp
 }
 
-func (s *Streams) getTimestampAndSequence(key string, id string) (int, int, error) {
+func parseStreamID(id string) (string, string, error) {
+	if id == "*" {
+		return "*", "*", nil
+	}
 	tokens := strings.Split(id, "-")
-	if len(tokens) < 1 {
-		return 0, 0, errors.New("ERR The ID specified in XADD is invalid")
-	}
-	timestamp := s.generateTimestamp(key, tokens[0])
 	if len(tokens) == 1 {
-		tokens = append(tokens, "*")
+		return tokens[0], "*", nil
 	}
-	sequenceToken := tokens[1]
-	if sequenceToken == "*" {
-		sequence := s.generateSequence(key, timestamp)
-		return timestamp, sequence, nil
+	if len(tokens) == 2 {
+		return tokens[0], tokens[1], nil
 	}
-	sequence, err := strconv.Atoi(sequenceToken)
+	return "", "", errors.New("ERR The ID specified in XADD is invalid")
+}
+
+func (s *Streams) generateStreamID(key string, id string) (*StreamID, error) {
+	timestampToken, sequenceToken, err := parseStreamID(id)
 	if err != nil {
-		return 0, 0, errors.New("ERR The ID specified in XADD is invalid")
+		return nil, err
 	}
-	return timestamp, sequence, nil
+
+	timestamp := s.generateTimestamp(key, timestampToken)
+
+	var sequence int
+	if sequenceToken == "*" {
+		sequence = s.generateSequence(key, timestamp)
+	} else {
+		sequence, err = strconv.Atoi(sequenceToken)
+		if err != nil {
+			return nil, errors.New("ERR The ID specified in XADD is invalid")
+		}
+	}
+
+	return &StreamID{Timestamp: timestamp, Sequence: sequence}, nil
 }
 
 func (s *Streams) Add(key string, id string) (string, error) {
-	timestamp, sequence, err := s.getTimestampAndSequence(key, id)
+	streamID, err := s.generateStreamID(key, id)
 	if err != nil {
 		return "", err
 	}
-	err = s.validateKey(key, timestamp, sequence)
+	err = s.validateEntryID(key, streamID.Timestamp, streamID.Sequence)
 	if err != nil {
 		return "", err
 	}
-	stream := NewStreamEntry(key, timestamp, sequence)
+	stream := NewStreamEntry(key, streamID.Timestamp, streamID.Sequence)
 	s.streams[key] = append(s.streams[key], stream)
-	return fmt.Sprintf("%d-%d", timestamp, sequence), nil
+	return fmt.Sprintf("%d-%d", streamID.Timestamp, streamID.Sequence), nil
 }
 
 func (s *Streams) Contains(key string) bool {
