@@ -29,20 +29,31 @@ func NewStreamEntry(timestamp int, sequence int) *StreamEntry {
 	return &StreamEntry{Timestamp: timestamp, Sequence: sequence}
 }
 
+type Stream struct {
+	entries []*StreamEntry
+}
+
+func (s *Stream) lastEntry() *StreamEntry {
+	if len(s.entries) == 0 {
+		return nil
+	}
+	return s.entries[len(s.entries)-1]
+}
+
 type Streams struct {
-	streams map[string][]*StreamEntry
+	streams map[string]*Stream
 	clock   store.Clock
 }
 
 func NewStreams() *Streams {
 	return &Streams{
-		streams: make(map[string][]*StreamEntry),
+		streams: make(map[string]*Stream),
 	}
 }
 
 func NewStreamsWithClock(clock store.Clock) *Streams {
 	return &Streams{
-		streams: make(map[string][]*StreamEntry),
+		streams: make(map[string]*Stream),
 		clock:   clock,
 	}
 }
@@ -51,11 +62,11 @@ func (s *Streams) validateEntryID(key string, timestamp, sequence int) error {
 	if timestamp < 1 && sequence < 1 {
 		return errors.New(ErrInvalidStreamIDGreaterThanZero)
 	}
-	existingEntry, ok := s.streams[key]
-	if !ok || len(existingEntry) == 0 {
+	existingStream, ok := s.streams[key]
+	if !ok || len(existingStream.entries) == 0 {
 		return nil
 	}
-	lastEntry := existingEntry[len(existingEntry)-1]
+	lastEntry := existingStream.lastEntry()
 	if lastEntry.Timestamp < timestamp {
 		return nil
 	}
@@ -67,13 +78,13 @@ func (s *Streams) validateEntryID(key string, timestamp, sequence int) error {
 
 func (s *Streams) generateSequence(key string, timestamp int) int {
 	existingStream, ok := s.streams[key]
-	if !ok || len(existingStream) == 0 {
+	if !ok || len(existingStream.entries) == 0 {
 		if timestamp == 0 {
 			return 1
 		}
 		return 0
 	}
-	lastEntry := existingStream[len(existingStream)-1]
+	lastEntry := existingStream.lastEntry()
 	if lastEntry.Timestamp == timestamp {
 		return lastEntry.Sequence + 1
 	}
@@ -96,10 +107,10 @@ func (s *Streams) generateTimestamp(key string, timestampToken string) int {
 	if !ok {
 		return defaultTimestamp
 	}
-	if len(stream) == 0 {
+	if len(stream.entries) == 0 {
 		return defaultTimestamp
 	}
-	lastEntry := stream[len(stream)-1]
+	lastEntry := stream.lastEntry()
 	if lastEntry.Timestamp >= defaultTimestamp {
 		return lastEntry.Timestamp + 1
 	}
@@ -150,8 +161,13 @@ func (s *Streams) Add(key string, id string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	stream := NewStreamEntry(streamID.Timestamp, streamID.Sequence)
-	s.streams[key] = append(s.streams[key], stream)
+
+	if _, ok := s.streams[key]; !ok {
+		s.streams[key] = &Stream{entries: make([]*StreamEntry, 0)}
+	}
+
+	entry := NewStreamEntry(streamID.Timestamp, streamID.Sequence)
+	s.streams[key].entries = append(s.streams[key].entries, entry)
 	return fmt.Sprintf("%d-%d", streamID.Timestamp, streamID.Sequence), nil
 }
 
