@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	AutoGenerateIDToken             = "*"
+	AutoGenerateIDToken               = "*"
 	ErrInvalidStreamIDGreaterThanZero = "ERR The ID specified in XADD must be greater than 0-0"
 	ErrInvalidStreamIDEqualOrSmaller  = "ERR The ID specified in XADD is equal or smaller than the target stream top item"
 	ErrInvalidStreamID                = "ERR The ID specified in XADD is invalid"
@@ -19,6 +19,7 @@ const (
 type StreamEntry struct {
 	Timestamp int
 	Sequence  int
+	Data      [][]byte
 }
 
 type StreamID struct {
@@ -26,8 +27,8 @@ type StreamID struct {
 	Sequence  int
 }
 
-func NewStreamEntry(timestamp int, sequence int) *StreamEntry {
-	return &StreamEntry{Timestamp: timestamp, Sequence: sequence}
+func NewStreamEntry(timestamp int, sequence int, data [][]byte) *StreamEntry {
+	return &StreamEntry{Timestamp: timestamp, Sequence: sequence, Data: data}
 }
 
 type Stream struct {
@@ -68,6 +69,9 @@ func (s *Streams) validateEntryID(key string, timestamp, sequence int) error {
 		return nil
 	}
 	lastEntry := existingStream.lastEntry()
+	if lastEntry == nil {
+		return nil
+	}
 	if lastEntry.Timestamp < timestamp {
 		return nil
 	}
@@ -86,6 +90,12 @@ func (s *Streams) generateSequence(key string, timestamp int) int {
 		return 0
 	}
 	lastEntry := existingStream.lastEntry()
+	if lastEntry == nil {
+		if timestamp == 0 {
+			return 1
+		}
+		return 0
+	}
 	if lastEntry.Timestamp == timestamp {
 		return lastEntry.Sequence + 1
 	}
@@ -112,10 +122,10 @@ func (s *Streams) resolveTimestamp(key string, timestampToken string) int {
 		return defaultTimestamp
 	}
 	lastEntry := stream.lastEntry()
-	if lastEntry.Timestamp >= defaultTimestamp {
-		return lastEntry.Timestamp + 1
+	if lastEntry == nil || lastEntry.Timestamp <= defaultTimestamp {
+		return defaultTimestamp
 	}
-	return defaultTimestamp
+	return defaultTimestamp + 1
 }
 
 func parseStreamID(id string) (string, string, error) {
@@ -158,7 +168,7 @@ func (s *Streams) generateStreamID(key string, id string) (*StreamID, error) {
 	return &StreamID{Timestamp: timestamp, Sequence: sequence}, nil
 }
 
-func (s *Streams) Add(key string, id string) (string, error) {
+func (s *Streams) Add(key string, id string, data [][]byte) (string, error) {
 	streamID, err := s.generateStreamID(key, id)
 	if err != nil {
 		return "", err
@@ -172,7 +182,7 @@ func (s *Streams) Add(key string, id string) (string, error) {
 		s.streams[key] = &Stream{entries: make([]*StreamEntry, 0)}
 	}
 
-	entry := NewStreamEntry(streamID.Timestamp, streamID.Sequence)
+	entry := NewStreamEntry(streamID.Timestamp, streamID.Sequence, data)
 	s.streams[key].entries = append(s.streams[key].entries, entry)
 	return fmt.Sprintf("%d-%d", streamID.Timestamp, streamID.Sequence), nil
 }

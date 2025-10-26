@@ -2,35 +2,16 @@ package commands
 
 import (
 	"errors"
-	"strconv"
-	"strings"
 )
 
 type XADDCommand struct {
-	Key string
-	Id  string
-}
-
-func extractIdParts(id string) (int, int, error) {
-	tokens := strings.Split(id, "-")
-	if len(tokens) != 2 {
-		return 0, 0, errors.New("invalid id")
-	}
-	timestampToken := tokens[0]
-	sequenceToken := tokens[1]
-	timestamp, err := strconv.Atoi(timestampToken)
-	if err != nil {
-		return 0, 0, errors.New("invalid id")
-	}
-	sequence, err := strconv.Atoi(sequenceToken)
-	if err != nil {
-		return 0, 0, errors.New("invalid id")
-	}
-	return timestamp, sequence, nil
+	Key  string
+	Id   string
+	Data [][]byte
 }
 
 func (x *XADDCommand) Execute(ctx *ExecutionContext) ([]byte, error) {
-	id, err := ctx.Streams.Add(x.Key, x.Id)
+	id, err := ctx.Streams.Add(x.Key, x.Id, x.Data)
 	if err != nil {
 		return ctx.Serializer.EncodeError(err.Error()), nil
 	}
@@ -43,8 +24,9 @@ func NewXADDCommand(elements [][]byte) (*XADDCommand, error) {
 	}
 
 	return &XADDCommand{
-		Key: string(elements[0]),
-		Id:  string(elements[1]),
+		Key:  string(elements[0]),
+		Id:   string(elements[1]),
+		Data: elements[2:],
 	}, nil
 }
 
