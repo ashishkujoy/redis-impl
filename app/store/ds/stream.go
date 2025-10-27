@@ -36,6 +36,12 @@ func NewStreamID(timestamp, sequence int) *StreamID {
 }
 
 func (id *StreamID) isInRange(start, end *StreamID, startInclusive bool) bool {
+	if start.Timestamp == end.Timestamp && start.Timestamp == id.Timestamp {
+		if startInclusive {
+			return start.Sequence <= id.Sequence && id.Sequence <= end.Sequence
+		}
+		return start.Sequence < id.Sequence && id.Sequence <= end.Sequence
+	}
 	isTimestampInRange := start.Timestamp <= id.Timestamp && id.Timestamp <= end.Timestamp
 	if !isTimestampInRange {
 		return false
@@ -231,6 +237,15 @@ type StreamEntryView struct {
 	Data []string
 }
 
+type StreamView struct {
+	Key     string
+	Entries []*StreamEntryView
+}
+
+func NewStreamView(key string, data []*StreamEntryView) *StreamView {
+	return &StreamView{Key: key, Entries: data}
+}
+
 func NewStreamEntryView(id string, data []string) *StreamEntryView {
 	return &StreamEntryView{Id: id, Data: data}
 }
@@ -288,4 +303,14 @@ func (s *Streams) ListGreaterThan(key string, startStr string) []*StreamEntryVie
 	end := generateStreamId("+", lastEntry, true)
 
 	return s.filterInRange(stream, start, end, false)
+}
+
+func (s *Streams) XRead(keyValues []string) []*StreamView {
+	midPoint := len(keyValues) / 2
+	keys, ids := keyValues[:midPoint], keyValues[midPoint:]
+
+	return lo.Map(keys, func(key string, index int) *StreamView {
+		entries := s.ListGreaterThan(key, ids[index])
+		return NewStreamView(key, entries)
+	})
 }

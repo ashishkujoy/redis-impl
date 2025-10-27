@@ -12,17 +12,17 @@ import (
 type RESPSerializer struct {
 }
 
-func (r RESPSerializer) EncodeXRead(key string, entries []*ds.StreamEntryView) ([]byte, error) {
+func (r RESPSerializer) EncodeXRead(entries []*ds.StreamView) ([]byte, error) {
 	res := make([]byte, 0)
-	res = append(res, []byte("*1\r\n")...)
+	res = append(res, []byte(fmt.Sprintf("*%d\r\n", len(entries)))...)
 
-	res = append(res, []byte("*2\r\n")...)
-
-	st, _ := EncodeBulkString(key)
-	res = append(res, st...)
-
-	entriesBytes, _ := r.EncodeXRange(entries)
-	res = append(res, entriesBytes...)
+	lo.ForEach(entries, func(streamView *ds.StreamView, index int) {
+		res = append(res, []byte("*2\r\n")...)
+		st, _ := EncodeBulkString(streamView.Key)
+		res = append(res, st...)
+		entriesBytes, _ := r.EncodeXRange(streamView.Entries)
+		res = append(res, entriesBytes...)
+	})
 
 	return res, nil
 }

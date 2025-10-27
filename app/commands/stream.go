@@ -2,6 +2,8 @@ package commands
 
 import (
 	"errors"
+
+	"github.com/samber/lo"
 )
 
 type XADDCommand struct {
@@ -53,13 +55,12 @@ func NewXRANGECommand(elements [][]byte) (*XRANGECommand, error) {
 }
 
 type XREADCommand struct {
-	Key   string
-	Start string
+	KeysAndIds []string
 }
 
 func (x *XREADCommand) Execute(ctx *ExecutionContext) ([]byte, error) {
-	entries := ctx.Streams.ListGreaterThan(x.Key, x.Start)
-	return ctx.Serializer.EncodeXRead(x.Key, entries)
+	entries := ctx.Streams.XRead(x.KeysAndIds)
+	return ctx.Serializer.EncodeXRead(entries)
 }
 
 func NewXREADCommand(elements [][]byte) (*XREADCommand, error) {
@@ -67,8 +68,9 @@ func NewXREADCommand(elements [][]byte) (*XREADCommand, error) {
 		return nil, errors.New("not enough arguments")
 	}
 	return &XREADCommand{
-		Key:   string(elements[1]),
-		Start: string(elements[2]),
+		KeysAndIds: lo.Map(elements[1:], func(item []byte, index int) string {
+			return string(item)
+		}),
 	}, nil
 }
 

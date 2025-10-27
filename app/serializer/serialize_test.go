@@ -41,7 +41,7 @@ func TestEncodeXRead(t *testing.T) {
 	}
 	serializer := NewRESPSerializer()
 
-	bytes, err := serializer.EncodeXRead("some_key", streamEntries)
+	bytes, err := serializer.EncodeXRead([]*ds.StreamView{ds.NewStreamView("some_key", streamEntries)})
 	assert.NoError(t, err)
 
 	expectedResp := "*1\r\n" +

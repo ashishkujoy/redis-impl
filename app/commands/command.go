@@ -14,7 +14,7 @@ type Serializer interface {
 	NullArray() []byte
 	EncodeError(string) []byte
 	EncodeXRange(entries []*ds.StreamEntryView) ([]byte, error)
-	EncodeXRead(key string, entries []*ds.StreamEntryView) ([]byte, error)
+	EncodeXRead(entries []*ds.StreamView) ([]byte, error)
 }
 
 type ExecutionContext struct {

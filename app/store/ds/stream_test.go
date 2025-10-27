@@ -141,6 +141,18 @@ func TestListNonExistingStream(t *testing.T) {
 	assert.Equal(t, 0, len(list))
 }
 
+func TestListWithStartOfStream(t *testing.T) {
+	streams := NewStreams()
+
+	_, _ = streams.Add("grape", "0-1", [][]byte{[]byte("blueberry"), []byte("apple")})
+	_, _ = streams.Add("grape", "0-2", [][]byte{[]byte("raspberry"), []byte("grape")})
+	_, _ = streams.Add("grape", "0-3", [][]byte{[]byte("pear"), []byte("grape")})
+	_, _ = streams.Add("grape", "0-4", [][]byte{[]byte("strawberry"), []byte("pear")})
+
+	entries := streams.List("grape", "-", "0-2")
+	assert.Equal(t, 2, len(entries))
+}
+
 func TestListWithNoMatchingEntry(t *testing.T) {
 	streams := NewStreams()
 	_, _ = streams.Add("Key1", "1526919030473-0", [][]byte{[]byte("foo")})
@@ -317,4 +329,38 @@ func TestListGreaterThan(t *testing.T) {
 
 	entries := streams.ListGreaterThan("Key1", "1526919030473-0")
 	assert.Equal(t, 2, len(entries))
+}
+
+func TestXREADMultipleStreams(t *testing.T) {
+	streams := NewStreams()
+	_, _ = streams.Add("Key1", "1526919030473-2", [][]byte{[]byte("V1")})
+	_, _ = streams.Add("Key1", "1526919030473-5", [][]byte{[]byte("V2")})
+	_, _ = streams.Add("Key1", "1526919030474-5", [][]byte{[]byte("V4")})
+	_, _ = streams.Add("Key2", "1526919030473-1", [][]byte{[]byte("V3")})
+	_, _ = streams.Add("Key2", "1526919030473-2", [][]byte{[]byte("V5")})
+	_, _ = streams.Add("Key3", "1526919030473-1", [][]byte{[]byte("V6")})
+
+	entries := streams.XRead([]string{
+		"Key2", "Key1", "Key3",
+		"1526919030473-1",
+		"1526919030473-3",
+		"1526919030473-2",
+	})
+
+	assert.Equal(t, 3, len(entries))
+
+	key2Stream := entries[0]
+	assert.Equal(t, "Key2", key2Stream.Key)
+	assert.Equal(t, 1, len(key2Stream.Entries))
+	assert.Equal(t, "1526919030473-2", key2Stream.Entries[0].Id)
+
+	key1Stream := entries[1]
+	assert.Equal(t, "Key1", key1Stream.Key)
+	assert.Equal(t, 2, len(key1Stream.Entries))
+	assert.Equal(t, "1526919030473-5", key1Stream.Entries[0].Id)
+	assert.Equal(t, "1526919030474-5", key1Stream.Entries[1].Id)
+
+	key3Stream := entries[2]
+	assert.Equal(t, "Key3", key3Stream.Key)
+	assert.Equal(t, 0, len(key3Stream.Entries))
 }
