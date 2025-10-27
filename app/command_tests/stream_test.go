@@ -44,5 +44,4 @@ func TestXADD_CommandWithAutoGenerateRange(t *testing.T) {
 	_, err = command.Execute(ctx)
 
 	assert.NoError(t, err)
-
 }

@@ -171,64 +171,80 @@ func TestListWithNoMatchingEntry(t *testing.T) {
 
 func TestStreamIdInRange(t *testing.T) {
 	tests := []struct {
-		name       string
-		id         *StreamID
-		start, end *StreamID
-		inRange    bool
+		name           string
+		id             *StreamID
+		start, end     *StreamID
+		inRange        bool
+		startInclusive bool
 	}{
 		{
-			name:    "id is in range",
-			start:   NewStreamID(4, 4),
-			id:      NewStreamID(5, 5),
-			end:     NewStreamID(6, 6),
-			inRange: true,
+			name:           "id is in range",
+			start:          NewStreamID(4, 4),
+			id:             NewStreamID(5, 5),
+			end:            NewStreamID(6, 6),
+			inRange:        true,
+			startInclusive: true,
 		},
 		{
-			name:    "timestamp equals to start and sequence greater than start sequence",
-			start:   NewStreamID(4, 4),
-			id:      NewStreamID(4, 5),
-			end:     NewStreamID(6, 6),
-			inRange: true,
+			name:           "timestamp equals to start and sequence greater than start sequence",
+			start:          NewStreamID(4, 4),
+			id:             NewStreamID(4, 5),
+			end:            NewStreamID(6, 6),
+			inRange:        true,
+			startInclusive: true,
 		},
 		{
-			name:    "timestamp equals to start and sequence equal to the start sequence",
-			start:   NewStreamID(4, 5),
-			id:      NewStreamID(4, 5),
-			end:     NewStreamID(6, 6),
-			inRange: true,
+			name:           "timestamp equals to start and sequence equal to the start sequence",
+			start:          NewStreamID(4, 5),
+			id:             NewStreamID(4, 5),
+			end:            NewStreamID(6, 6),
+			inRange:        true,
+			startInclusive: true,
 		},
 		{
-			name:    "timestamp equals to start and sequence lesser than the start sequence",
-			start:   NewStreamID(4, 3),
-			id:      NewStreamID(4, 2),
-			end:     NewStreamID(6, 6),
-			inRange: false,
+			name:           "timestamp equals to start and sequence equal to the start sequence with start exclusive",
+			start:          NewStreamID(4, 5),
+			id:             NewStreamID(4, 5),
+			end:            NewStreamID(6, 6),
+			inRange:        false,
+			startInclusive: false,
 		},
 		{
-			name:    "timestamp equals to end and sequence lesser than the end sequence",
-			start:   NewStreamID(2, 3),
-			id:      NewStreamID(4, 2),
-			end:     NewStreamID(4, 3),
-			inRange: true,
+			name:           "timestamp equals to start and sequence lesser than the start sequence",
+			start:          NewStreamID(4, 3),
+			id:             NewStreamID(4, 2),
+			end:            NewStreamID(6, 6),
+			inRange:        false,
+			startInclusive: true,
 		},
 		{
-			name:    "timestamp equals to end and sequence equal to the end sequence",
-			start:   NewStreamID(2, 3),
-			id:      NewStreamID(4, 5),
-			end:     NewStreamID(4, 5),
-			inRange: true,
+			name:           "timestamp equals to end and sequence lesser than the end sequence",
+			start:          NewStreamID(2, 3),
+			id:             NewStreamID(4, 2),
+			end:            NewStreamID(4, 3),
+			inRange:        true,
+			startInclusive: true,
 		},
 		{
-			name:    "timestamp equals to end and sequence greater than the end sequence",
-			start:   NewStreamID(2, 3),
-			id:      NewStreamID(4, 6),
-			end:     NewStreamID(4, 5),
-			inRange: false,
+			name:           "timestamp equals to end and sequence equal to the end sequence",
+			start:          NewStreamID(2, 3),
+			id:             NewStreamID(4, 5),
+			end:            NewStreamID(4, 5),
+			inRange:        true,
+			startInclusive: true,
+		},
+		{
+			name:           "timestamp equals to end and sequence greater than the end sequence",
+			start:          NewStreamID(2, 3),
+			id:             NewStreamID(4, 6),
+			end:            NewStreamID(4, 5),
+			inRange:        false,
+			startInclusive: true,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			inRange := test.id.isInRange(test.start, test.end)
+			inRange := test.id.isInRange(test.start, test.end, test.startInclusive)
 			assert.Equal(t, test.inRange, inRange)
 		})
 	}
@@ -290,5 +306,15 @@ func TestListWithEndSymbol(t *testing.T) {
 	_, _ = streams.Add("Key1", "1526919030474-5", [][]byte{[]byte("V2")})
 
 	entries := streams.List("Key1", "1526919030473-5", "+")
+	assert.Equal(t, 2, len(entries))
+}
+
+func TestListGreaterThan(t *testing.T) {
+	streams := NewStreams()
+	_, _ = streams.Add("Key1", "1526919030473-0", [][]byte{[]byte("V1")})
+	_, _ = streams.Add("Key1", "1526919030473-5", [][]byte{[]byte("V2")})
+	_, _ = streams.Add("Key1", "1526919030474-5", [][]byte{[]byte("V2")})
+
+	entries := streams.ListGreaterThan("Key1", "1526919030473-0")
 	assert.Equal(t, 2, len(entries))
 }

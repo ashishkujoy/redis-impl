@@ -52,11 +52,34 @@ func NewXRANGECommand(elements [][]byte) (*XRANGECommand, error) {
 	}, nil
 }
 
+type XREADCommand struct {
+	Key   string
+	Start string
+}
+
+func (x *XREADCommand) Execute(ctx *ExecutionContext) ([]byte, error) {
+	entries := ctx.Streams.ListGreaterThan(x.Key, x.Start)
+	return ctx.Serializer.EncodeXRead(x.Key, entries)
+}
+
+func NewXREADCommand(elements [][]byte) (*XREADCommand, error) {
+	if len(elements) < 2 {
+		return nil, errors.New("not enough arguments")
+	}
+	return &XREADCommand{
+		Key:   string(elements[1]),
+		Start: string(elements[2]),
+	}, nil
+}
+
 func RegisterStreamCommands(registry *CommandRegistry) {
 	registry.Register("xadd", func(i [][]byte) (Command, error) {
 		return NewXADDCommand(i)
 	})
 	registry.Register("xrange", func(i [][]byte) (Command, error) {
 		return NewXRANGECommand(i)
+	})
+	registry.Register("xread", func(i [][]byte) (Command, error) {
+		return NewXREADCommand(i)
 	})
 }

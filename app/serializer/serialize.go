@@ -12,6 +12,21 @@ import (
 type RESPSerializer struct {
 }
 
+func (r RESPSerializer) EncodeXRead(key string, entries []*ds.StreamEntryView) ([]byte, error) {
+	res := make([]byte, 0)
+	res = append(res, []byte("*1\r\n")...)
+
+	res = append(res, []byte("*2\r\n")...)
+
+	st, _ := EncodeBulkString(key)
+	res = append(res, st...)
+
+	entriesBytes, _ := r.EncodeXRange(entries)
+	res = append(res, entriesBytes...)
+
+	return res, nil
+}
+
 func (r RESPSerializer) EncodeStreamEntry(entry *ds.StreamEntryView) []byte {
 	res := make([]byte, 0)
 	res = append(res, []byte("*2\r\n")...)

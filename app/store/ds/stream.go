@@ -35,13 +35,16 @@ func NewStreamID(timestamp, sequence int) *StreamID {
 	}
 }
 
-func (id *StreamID) isInRange(start, end *StreamID) bool {
+func (id *StreamID) isInRange(start, end *StreamID, startInclusive bool) bool {
 	isTimestampInRange := start.Timestamp <= id.Timestamp && id.Timestamp <= end.Timestamp
 	if !isTimestampInRange {
 		return false
 	}
 	if id.Timestamp == start.Timestamp {
-		return id.Sequence >= start.Sequence
+		if startInclusive {
+			return id.Sequence >= start.Sequence
+		}
+		return id.Sequence > start.Sequence
 	}
 	if id.Timestamp == end.Timestamp {
 		return id.Sequence <= end.Sequence
@@ -244,10 +247,14 @@ func (s *Streams) List(key string, startStr string, endStr string) []*StreamEntr
 
 	start := generateStreamId(startStr, lastEntry, false)
 	end := generateStreamId(endStr, lastEntry, true)
+	return s.filterInRange(stream, start, end, true)
+}
+
+func (s *Streams) filterInRange(stream *Stream, start *StreamID, end *StreamID, startInclusive bool) []*StreamEntryView {
 	var entries []*StreamEntryView
 	for _, entry := range stream.entries {
 		streamID := NewStreamID(entry.Timestamp, entry.Sequence)
-		if streamID.isInRange(start, end) {
+		if streamID.isInRange(start, end, startInclusive) {
 			data := lo.Map(entry.Data, func(item []byte, index int) string {
 				return string(item)
 			})
@@ -266,4 +273,19 @@ func (s *Streams) List(key string, startStr string, endStr string) []*StreamEntr
 func (s *Streams) Contains(key string) bool {
 	_, ok := s.streams[key]
 	return ok
+}
+
+func (s *Streams) ListGreaterThan(key string, startStr string) []*StreamEntryView {
+	stream, ok := s.streams[key]
+	if !ok {
+		return make([]*StreamEntryView, 0)
+	}
+	lastEntry := stream.lastEntry()
+	if lastEntry == nil {
+		return make([]*StreamEntryView, 0)
+	}
+	start := generateStreamId(startStr, lastEntry, false)
+	end := generateStreamId("+", lastEntry, true)
+
+	return s.filterInRange(stream, start, end, false)
 }
