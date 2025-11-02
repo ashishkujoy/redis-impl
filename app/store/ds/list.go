@@ -12,6 +12,10 @@ type List struct {
 	tail   *listNode
 }
 
+func NewEmptyList() *List {
+	return &List{length: 0, head: nil, tail: nil}
+}
+
 func NewList(value string) *List {
 	node := &listNode{value: value}
 	return &List{
@@ -25,7 +29,18 @@ func (l *List) Len() int {
 	return l.length
 }
 
+func (l *List) pushInEmptyList(value string) int {
+	node := &listNode{value: value}
+	l.head = node
+	l.tail = node
+	l.length++
+	return 1
+}
+
 func (l *List) RPush(value string) int {
+	if l.length == 0 {
+		return l.pushInEmptyList(value)
+	}
 	node := &listNode{value: value}
 	l.tail.child = node
 	node.parent = l.tail
@@ -35,6 +50,9 @@ func (l *List) RPush(value string) int {
 }
 
 func (l *List) LPush(value string) int {
+	if l.length == 0 {
+		return l.pushInEmptyList(value)
+	}
 	node := &listNode{value: value}
 	l.head.parent = node
 	node.child = l.head
@@ -75,5 +93,27 @@ func (l *List) LRange(start int, end int) []string {
 		elements = append(elements, startingNode.value)
 		startingNode = startingNode.child
 	}
+	return elements
+}
+
+func (l *List) popFromLeft() string {
+	oldHead := l.head
+	newHead := oldHead.child
+	if newHead != nil {
+		newHead.parent = nil
+	}
+	l.head = newHead
+	l.length--
+	return oldHead.value
+}
+
+func (l *List) LPop(count int) []string {
+	length := l.length
+	elements := make([]string, 0, min(count, length))
+
+	for i := 0; i < count && i < length; i++ {
+		elements = append(elements, l.popFromLeft())
+	}
+
 	return elements
 }

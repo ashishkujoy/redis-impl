@@ -1,0 +1,316 @@
+package ds
+
+import (
+	"errors"
+	"fmt"
+	"strconv"
+	"strings"
+
+	"github.com/codecrafters-io/redis-starter-go/app/store"
+	lo "github.com/samber/lo"
+)
+
+const (
+	AutoGenerateIDToken               = "*"
+	ErrInvalidStreamIDGreaterThanZero = "ERR The ID specified in XADD must be greater than 0-0"
+	ErrInvalidStreamIDEqualOrSmaller  = "ERR The ID specified in XADD is equal or smaller than the target stream top item"
+	ErrInvalidStreamID                = "ERR The ID specified in XADD is invalid"
+)
+
+type StreamEntry struct {
+	Timestamp int
+	Sequence  int
+	Data      [][]byte
+}
+
+type StreamID struct {
+	Timestamp int
+	Sequence  int
+}
+
+func NewStreamID(timestamp, sequence int) *StreamID {
+	return &StreamID{
+		Timestamp: timestamp,
+		Sequence:  sequence,
+	}
+}
+
+func (id *StreamID) isInRange(start, end *StreamID, startInclusive bool) bool {
+	if start.Timestamp == end.Timestamp && start.Timestamp == id.Timestamp {
+		if startInclusive {
+			return start.Sequence <= id.Sequence && id.Sequence <= end.Sequence
+		}
+		return start.Sequence < id.Sequence && id.Sequence <= end.Sequence
+	}
+	isTimestampInRange := start.Timestamp <= id.Timestamp && id.Timestamp <= end.Timestamp
+	if !isTimestampInRange {
+		return false
+	}
+	if id.Timestamp == start.Timestamp {
+		if startInclusive {
+			return id.Sequence >= start.Sequence
+		}
+		return id.Sequence > start.Sequence
+	}
+	if id.Timestamp == end.Timestamp {
+		return id.Sequence <= end.Sequence
+	}
+	return true
+}
+
+func NewStreamEntry(timestamp int, sequence int, data [][]byte) *StreamEntry {
+	return &StreamEntry{Timestamp: timestamp, Sequence: sequence, Data: data}
+}
+
+type Stream struct {
+	entries []*StreamEntry
+}
+
+func (s *Stream) lastEntry() *StreamEntry {
+	if len(s.entries) == 0 {
+		return nil
+	}
+	return s.entries[len(s.entries)-1]
+}
+
+type Streams struct {
+	streams map[string]*Stream
+	clock   store.Clock
+}
+
+func NewStreams() *Streams {
+	return &Streams{
+		streams: make(map[string]*Stream),
+		clock:   store.NewSystemClock(),
+	}
+}
+
+func NewStreamsWithClock(clock store.Clock) *Streams {
+	return &Streams{
+		streams: make(map[string]*Stream),
+		clock:   clock,
+	}
+}
+
+func (s *Streams) validateEntryID(key string, timestamp, sequence int) error {
+	if timestamp < 1 && sequence < 1 {
+		return errors.New(ErrInvalidStreamIDGreaterThanZero)
+	}
+	existingStream, ok := s.streams[key]
+	if !ok || len(existingStream.entries) == 0 {
+		return nil
+	}
+	lastEntry := existingStream.lastEntry()
+	if lastEntry == nil {
+		return nil
+	}
+	if lastEntry.Timestamp < timestamp {
+		return nil
+	}
+	if lastEntry.Timestamp == timestamp && lastEntry.Sequence < sequence {
+		return nil
+	}
+	return errors.New(ErrInvalidStreamIDEqualOrSmaller)
+}
+
+func (s *Streams) generateSequence(key string, timestamp int) int {
+	existingStream, ok := s.streams[key]
+	if !ok || len(existingStream.entries) == 0 {
+		if timestamp == 0 {
+			return 1
+		}
+		return 0
+	}
+	lastEntry := existingStream.lastEntry()
+	if lastEntry == nil {
+		if timestamp == 0 {
+			return 1
+		}
+		return 0
+	}
+	if lastEntry.Timestamp == timestamp {
+		return lastEntry.Sequence + 1
+	}
+	if lastEntry.Timestamp < timestamp {
+		return 0
+	}
+	if timestamp == 0 {
+		return 1
+	}
+	return 0
+}
+
+func (s *Streams) resolveTimestamp(key string, timestampToken string) int {
+	timestamp, err := strconv.Atoi(timestampToken)
+	if err == nil {
+		return timestamp
+	}
+	stream, ok := s.streams[key]
+	defaultTimestamp := s.clock.CurrentMillis()
+	if !ok {
+		return defaultTimestamp
+	}
+	if len(stream.entries) == 0 {
+		return defaultTimestamp
+	}
+	lastEntry := stream.lastEntry()
+	if lastEntry == nil || lastEntry.Timestamp <= defaultTimestamp {
+		return defaultTimestamp
+	}
+	return defaultTimestamp + 1
+}
+
+func parseStreamID(id string) (string, string, error) {
+	if id == AutoGenerateIDToken {
+		return AutoGenerateIDToken, AutoGenerateIDToken, nil
+	}
+	tokens := strings.Split(id, "-")
+	if len(tokens) == 1 {
+		return tokens[0], AutoGenerateIDToken, nil
+	}
+	if len(tokens) == 2 {
+		return tokens[0], tokens[1], nil
+	}
+	return "", "", errors.New(ErrInvalidStreamID)
+}
+
+func (s *Streams) resolveSequence(key string, timestamp int, sequenceToken string) (int, error) {
+	if sequenceToken == AutoGenerateIDToken {
+		return s.generateSequence(key, timestamp), nil
+	}
+	sequence, err := strconv.Atoi(sequenceToken)
+	if err != nil {
+		return 0, errors.New(ErrInvalidStreamID)
+	}
+	return sequence, nil
+}
+
+func (s *Streams) generateStreamID(key string, id string) (*StreamID, error) {
+	timestampToken, sequenceToken, err := parseStreamID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	timestamp := s.resolveTimestamp(key, timestampToken)
+	sequence, err := s.resolveSequence(key, timestamp, sequenceToken)
+	if err != nil {
+		return nil, err
+	}
+
+	return &StreamID{Timestamp: timestamp, Sequence: sequence}, nil
+}
+
+func (s *Streams) Add(key string, id string, data [][]byte) (string, error) {
+	streamID, err := s.generateStreamID(key, id)
+	if err != nil {
+		return "", err
+	}
+	err = s.validateEntryID(key, streamID.Timestamp, streamID.Sequence)
+	if err != nil {
+		return "", err
+	}
+
+	if _, ok := s.streams[key]; !ok {
+		s.streams[key] = &Stream{entries: make([]*StreamEntry, 0)}
+	}
+
+	entry := NewStreamEntry(streamID.Timestamp, streamID.Sequence, data)
+	s.streams[key].entries = append(s.streams[key].entries, entry)
+	return fmt.Sprintf("%d-%d", streamID.Timestamp, streamID.Sequence), nil
+}
+
+func generateStreamId(idStr string, lastEntry *StreamEntry, isEndId bool) *StreamID {
+	tokens := strings.Split(idStr, "-")
+	timestamp, err := strconv.Atoi(tokens[0])
+	if err != nil && isEndId {
+		return &StreamID{Timestamp: lastEntry.Timestamp, Sequence: lastEntry.Sequence}
+	}
+	sequence := lastEntry.Sequence
+	if len(tokens) > 1 {
+		sequence, _ = strconv.Atoi(tokens[1])
+	}
+	return &StreamID{Timestamp: timestamp, Sequence: sequence}
+}
+
+type StreamEntryView struct {
+	Id   string
+	Data []string
+}
+
+type StreamView struct {
+	Key     string
+	Entries []*StreamEntryView
+}
+
+func NewStreamView(key string, data []*StreamEntryView) *StreamView {
+	return &StreamView{Key: key, Entries: data}
+}
+
+func NewStreamEntryView(id string, data []string) *StreamEntryView {
+	return &StreamEntryView{Id: id, Data: data}
+}
+
+func (s *Streams) List(key string, startStr string, endStr string) []*StreamEntryView {
+	stream, ok := s.streams[key]
+	if !ok {
+		return make([]*StreamEntryView, 0)
+	}
+	lastEntry := stream.lastEntry()
+	if lastEntry == nil {
+		return make([]*StreamEntryView, 0)
+	}
+
+	start := generateStreamId(startStr, lastEntry, false)
+	end := generateStreamId(endStr, lastEntry, true)
+	return s.filterInRange(stream, start, end, true)
+}
+
+func (s *Streams) filterInRange(stream *Stream, start *StreamID, end *StreamID, startInclusive bool) []*StreamEntryView {
+	var entries []*StreamEntryView
+	for _, entry := range stream.entries {
+		streamID := NewStreamID(entry.Timestamp, entry.Sequence)
+		if streamID.isInRange(start, end, startInclusive) {
+			data := lo.Map(entry.Data, func(item []byte, index int) string {
+				return string(item)
+			})
+			entries = append(
+				entries,
+				NewStreamEntryView(
+					fmt.Sprintf("%d-%d", entry.Timestamp, entry.Sequence),
+					data,
+				),
+			)
+		}
+	}
+	return entries
+}
+
+func (s *Streams) Contains(key string) bool {
+	_, ok := s.streams[key]
+	return ok
+}
+
+func (s *Streams) ListGreaterThan(key string, startStr string) []*StreamEntryView {
+	stream, ok := s.streams[key]
+	if !ok {
+		return make([]*StreamEntryView, 0)
+	}
+	lastEntry := stream.lastEntry()
+	if lastEntry == nil {
+		return make([]*StreamEntryView, 0)
+	}
+	start := generateStreamId(startStr, lastEntry, false)
+	end := generateStreamId("+", lastEntry, true)
+
+	return s.filterInRange(stream, start, end, false)
+}
+
+func (s *Streams) XRead(keyValues []string) []*StreamView {
+	midPoint := len(keyValues) / 2
+	keys, ids := keyValues[:midPoint], keyValues[midPoint:]
+
+	return lo.Map(keys, func(key string, index int) *StreamView {
+		entries := s.ListGreaterThan(key, ids[index])
+		return NewStreamView(key, entries)
+	})
+}

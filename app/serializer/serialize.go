@@ -1,16 +1,84 @@
 package serializer
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/codecrafters-io/redis-starter-go/app/commands"
+	"github.com/codecrafters-io/redis-starter-go/app/store/ds"
+	"github.com/samber/lo"
 )
 
 type RESPSerializer struct {
 }
 
+func (r RESPSerializer) EncodeXRead(entries []*ds.StreamView) ([]byte, error) {
+	res := make([]byte, 0)
+	res = append(res, []byte(fmt.Sprintf("*%d\r\n", len(entries)))...)
+
+	lo.ForEach(entries, func(streamView *ds.StreamView, index int) {
+		res = append(res, []byte("*2\r\n")...)
+		st, _ := EncodeBulkString(streamView.Key)
+		res = append(res, st...)
+		entriesBytes, _ := r.EncodeXRange(streamView.Entries)
+		res = append(res, entriesBytes...)
+	})
+
+	return res, nil
+}
+
+func (r RESPSerializer) EncodeStreamEntry(entry *ds.StreamEntryView) []byte {
+	res := make([]byte, 0)
+	res = append(res, []byte("*2\r\n")...)
+
+	id, _ := r.EncodeBulkString(entry.Id)
+	res = append(res, id...)
+
+	dataArray, _ := EncodeAsBulkArray(entry.Data)
+	res = append(res, dataArray...)
+
+	return res
+}
+
+func (r RESPSerializer) EncodeXRange(entries []*ds.StreamEntryView) ([]byte, error) {
+	res := make([]byte, 0)
+	res = append(res, []byte(fmt.Sprintf("*%d\r\n", len(entries)))...)
+
+	elements := lo.Reduce(entries, func(agg []byte, entryView *ds.StreamEntryView, index int) []byte {
+		return append(agg, r.EncodeStreamEntry(entryView)...)
+	}, make([]byte, 0))
+
+	res = append(res, elements...)
+	return res, nil
+}
+
+func (r RESPSerializer) NullArray() []byte {
+	return []byte("*-1\r\n")
+}
+
+func (r RESPSerializer) EncodeBulkString(msg string) ([]byte, error) {
+	return EncodeBytesAsBulkString([]byte(msg))
+}
+
+func (r RESPSerializer) EncodeError(message string) []byte {
+	buf := make([]byte, 0, len(message)+3)
+	buf = append(buf, '-')
+	buf = append(buf, []byte(message)...)
+	buf = append(buf, '\r', '\n')
+	return buf
+}
+
 func NewRESPSerializer() RESPSerializer {
 	return RESPSerializer{}
+}
+
+func (r RESPSerializer) EncodeSimpleString(s string) ([]byte, error) {
+	buf := make([]byte, 0, len(s)+3)
+	buf = append(buf, '+')
+	buf = append(buf, []byte(s)...)
+	buf = append(buf, '\r', '\n')
+
+	return buf, nil
 }
 
 func (r RESPSerializer) Encode(i interface{}) ([]byte, error) {
@@ -37,6 +105,10 @@ func (r RESPSerializer) Encode(i interface{}) ([]byte, error) {
 
 func (r RESPSerializer) Decode(bytes []byte) (commands.Command, error) {
 	panic("implement me")
+}
+
+func (r RESPSerializer) NullBulkByte() []byte {
+	return []byte("$-1\r\n")
 }
 
 func EncodeBulkString(message string) ([]byte, error) {

@@ -1,6 +1,9 @@
 package commands
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type CommandFactory func([][]byte) (Command, error)
 
@@ -13,6 +16,7 @@ func (r *CommandRegistry) Register(name string, factory CommandFactory) {
 }
 
 func (r *CommandRegistry) Create(name string, args [][]byte) (Command, error) {
+	name = strings.ToLower(name)
 	factory, ok := r.factories[name]
 	if !ok {
 		return nil, fmt.Errorf("no such command: %s", name)
@@ -24,12 +28,10 @@ func SetupCommandRegistry() *CommandRegistry {
 	factories := make(map[string]CommandFactory)
 	r := &CommandRegistry{factories: factories}
 
-	r.Register("echo", func(i [][]byte) (Command, error) {
-		return NewEchoCommand(i)
-	})
-	r.Register("ping", func(i [][]byte) (Command, error) {
-		return NewPingCommand(i)
-	})
+	RegisterMetaCommands(r)
+	RegisterKVCommands(r)
+	RegisterListCommands(r)
+	RegisterStreamCommands(r)
 
 	return r
 }
